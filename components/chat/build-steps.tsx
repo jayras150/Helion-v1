@@ -89,7 +89,7 @@ export function BuildSteps({ text }: BuildStepsProps) {
               <Check className="h-3 w-3" />
             </span>
           ) : (
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-indigo-500 dark:text-indigo-400" />
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-cyan-500 dark:text-cyan-400" />
           )}
           <span
             className={
@@ -106,7 +106,7 @@ export function BuildSteps({ text }: BuildStepsProps) {
           file names have streamed in yet. */}
       {hasContent && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="h-3 w-3 shrink-0 animate-spin text-indigo-500 dark:text-indigo-400" />
+          <Loader2 className="h-3 w-3 shrink-0 animate-spin text-cyan-500 dark:text-cyan-400" />
           <span>Generating… ({text.length.toLocaleString()} chars)</span>
         </div>
       )}

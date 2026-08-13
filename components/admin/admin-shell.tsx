@@ -129,7 +129,7 @@ export function AdminShell({ children }: AdminShellProps) {
   );
 
   return (
-    <div className="bg-background flex h-dvh overflow-hidden">
+    <div className="bg-background dark:bg-transparent flex h-dvh overflow-hidden">
       {/* Desktop sidebar */}
       <aside
         className={cn(

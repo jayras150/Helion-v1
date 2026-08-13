@@ -71,46 +71,57 @@ export function AppHeader({
   };
 
   return (
-    <div className={cn("border-border border-b dark:border-input", className)}>
+    <div
+      className={cn(
+        "border-border bg-gray-50 border-b dark:border-input dark:bg-card",
+        className,
+      )}
+    >
       <Suspense fallback={null}>
         <SearchParamsHandler />
       </Suspense>
 
-      <div className="px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="px-3 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-1.5 py-2 sm:h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-0">
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-4">
             <Link
               href="/"
               onClick={handleLogoClick}
-              className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text font-bold text-lg tracking-tight text-transparent dark:from-violet-400 dark:to-indigo-400"
+              className="shrink-0 bg-gradient-to-r from-cyan-500 to-sky-600 bg-clip-text font-bold text-lg tracking-tight text-transparent dark:from-cyan-400 dark:to-sky-500"
             >
               HELION
             </Link>
-            <ChatSelector />
+            <div className="min-w-0">
+              <ChatSelector />
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="ml-auto flex items-center gap-1 sm:ml-0 sm:gap-4">
             <ThemeToggle />
             {onPreview ? (
               <Button
                 variant="outline"
-                className="h-fit gap-1.5 px-3 py-1.5 text-sm"
+                className="h-8 w-8 shrink-0 gap-1.5 p-0 text-sm sm:h-fit sm:w-auto sm:px-3 sm:py-1.5"
                 onClick={onPreview}
                 disabled={previewDisabled}
+                title={previewActive ? "Previewing" : "Preview"}
               >
                 <Monitor className="h-4 w-4" />
-                {previewActive ? "Previewing" : "Preview"}
+                <span className="hidden sm:inline">
+                  {previewActive ? "Previewing" : "Preview"}
+                </span>
               </Button>
             ) : null}
             {onOpenFiles ? (
               <Button
                 variant="outline"
-                className="h-fit gap-1.5 px-3 py-1.5 text-sm"
+                className="h-8 w-8 shrink-0 gap-1.5 p-0 text-sm sm:h-fit sm:w-auto sm:px-3 sm:py-1.5"
                 onClick={onOpenFiles}
                 disabled={filesDisabled}
+                title="Files"
               >
                 <FolderTree className="h-4 w-4" />
-                Files
+                <span className="hidden sm:inline">Files</span>
               </Button>
             ) : null}
             <UserNav session={session} />

@@ -35,7 +35,7 @@ interface ChatMessagesProps {
 /** Brand avatar for the HELION agent. */
 function AgentAvatar() {
   return (
-    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-sm ring-1 ring-border">
+    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-sky-600 text-white shadow-sm ring-1 ring-border">
       <Sparkles className="size-4" />
     </div>
   );
@@ -63,7 +63,7 @@ const SCOPE_BADGE_COLORS: Record<string, string> = {
   backend:
     "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400",
   fullstack:
-    "border-violet-500/20 bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    "border-cyan-500/20 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400",
 };
 
 function ScopeBadge({ scope }: { scope: Scope | null }) {

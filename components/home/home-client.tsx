@@ -434,7 +434,7 @@ export function HomeClient() {
 
   if (showChatInterface) {
     return (
-      <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-black">
+      <div className="flex h-dvh flex-col bg-gray-50 dark:bg-transparent">
         {/* Handle search params with Suspense boundary */}
         <Suspense fallback={null}>
           <SearchParamsHandler onReset={handleReset} />
@@ -448,7 +448,7 @@ export function HomeClient() {
           filesDisabled={!previewSource}
         />
 
-        <div className="flex h-[calc(100vh-64px)] flex-col">
+        <div className="flex min-h-0 flex-1 flex-col">
           <ChatMessages
             chatHistory={chatHistory}
             isLoading={isLoading}
@@ -491,7 +491,7 @@ export function HomeClient() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-black">
+    <div className="flex min-h-dvh flex-col bg-gray-50 dark:bg-transparent">
       {/* Handle search params with Suspense boundary */}
       <Suspense fallback={null}>
         <SearchParamsHandler onReset={handleReset} />

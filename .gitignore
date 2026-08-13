@@ -36,6 +36,7 @@ yarn-error.log*
 
 # vercel
 .vercel
+.vercel-cli/
 
 # E2B project snapshots (runtime state backups)
 /data/

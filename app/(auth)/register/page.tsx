@@ -24,12 +24,12 @@ export default async function RegisterPage() {
       <div className="relative w-full max-w-sm">
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-lg">
           <div className="border-border border-b bg-card px-6 py-8 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-indigo-600">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-sky-600">
               <Sparkles className="h-6 w-6 text-white" />
             </div>
             <h1 className="font-semibold text-2xl text-foreground tracking-tight">
               Create your{" "}
-              <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent dark:from-violet-400 dark:to-indigo-400">
+              <span className="bg-gradient-to-r from-cyan-500 to-sky-600 bg-clip-text text-transparent dark:from-cyan-400 dark:to-sky-500">
                 HELION
               </span>{" "}
               account

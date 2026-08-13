@@ -44,7 +44,7 @@ export const CodeBlock = ({
     >
       <div className="relative">
         <SyntaxHighlighter
-          className="overflow-hidden dark:hidden"
+          className="overflow-x-auto dark:hidden"
           codeTagProps={{
             className: "font-mono text-sm",
           }}
@@ -68,7 +68,7 @@ export const CodeBlock = ({
         </SyntaxHighlighter>
 
         <SyntaxHighlighter
-          className="hidden overflow-hidden dark:block"
+          className="hidden overflow-x-auto dark:block"
           codeTagProps={{
             className: "font-mono text-sm",
           }}

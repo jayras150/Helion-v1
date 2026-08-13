@@ -124,7 +124,7 @@ export function ChatDetailClient() {
   }, [isLoadingChat]);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black">
+    <div className="flex h-dvh flex-col bg-gray-50 dark:bg-transparent">
       <AppHeader
         onPreview={() => setIsPreviewOpen(true)}
         previewActive={isPreviewOpen}
@@ -133,7 +133,7 @@ export function ChatDetailClient() {
         filesDisabled={!previewSource}
       />
 
-      <div className="flex h-[calc(100vh-64px)] flex-col">
+      <div className="flex min-h-0 flex-1 flex-col">
         <ChatMessages
           chatHistory={chatHistory}
           isLoading={isLoading}
