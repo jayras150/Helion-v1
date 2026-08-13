@@ -1,11 +1,18 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/app/(auth)/auth";
-import { getUserV0Client, getV0ClientErrorResponse } from "@/lib/v0-client";
+import { deleteChat } from "@/lib/db/queries";
 
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     const { chatId } = await request.json();
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 },
+      );
+    }
 
     if (!chatId) {
       return NextResponse.json(
@@ -14,24 +21,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const v0Client = await getUserV0Client(session).catch((error) => {
-      const response = getV0ClientErrorResponse(error);
-      if (response) {
-        throw response;
-      }
-      throw error;
-    });
+    await deleteChat({ chatId, userId: session.user.id });
 
-    const result = await v0Client.chats.delete({
-      chatId,
-    });
-
-    return NextResponse.json(result);
+    return NextResponse.json({ success: true });
   } catch (error) {
-    if (error instanceof Response) {
-      return error;
-    }
-
     console.error("Error deleting chat:", error);
     return NextResponse.json(
       { error: "Failed to delete chat" },

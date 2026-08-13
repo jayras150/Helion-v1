@@ -1,7 +1,7 @@
 import { MessageSquare, Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
-import { auth } from "../auth";
+import { auth, oauthAvailable } from "../auth";
 
 interface LoginPageProps {
   searchParams: Promise<{ callbackUrl?: string }>;
@@ -37,19 +37,22 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         )}
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-lg">
           <div className="border-border border-b bg-card px-6 py-8 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Sparkles className="h-6 w-6 text-primary" />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-indigo-600">
+              <Sparkles className="h-6 w-6 text-white" />
             </div>
             <h1 className="font-semibold text-2xl text-foreground tracking-tight">
-              Welcome back
+              Welcome back to{" "}
+              <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent dark:from-violet-400 dark:to-indigo-400">
+                HELION
+              </span>
             </h1>
             <p className="mt-2 text-muted-foreground text-sm">
-              Sign in to your account to continue
+              Sign in to your account to continue building
             </p>
           </div>
 
           <div className="bg-muted/30 px-6 py-8">
-            <AuthForm type="signin" />
+            <AuthForm type="signin" oauthAvailable={oauthAvailable()} />
           </div>
         </div>
       </div>

@@ -1,46 +1,93 @@
 import type { UIMessage } from "ai";
-import type { ComponentProps, HTMLAttributes } from "react";
+import type { ComponentProps, HTMLAttributes, ReactNode } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
+  avatar?: ReactNode;
+  name?: string;
+  badge?: ReactNode;
 };
 
-export const Message = ({ className, from, ...props }: MessageProps) => (
-  <div
-    className={cn(
-      "group flex w-full items-end justify-end gap-2 py-4",
-      from === "user" ? "is-user" : "is-assistant flex-row-reverse justify-end",
-      from === "user" ? "[&>div]:max-w-[80%]" : "[&>div]:max-w-full",
-      className,
-    )}
-    {...props}
-  />
-);
+export const Message = ({
+  className,
+  from,
+  avatar,
+  name,
+  badge,
+  children,
+  ...props
+}: MessageProps) => {
+  const isUser = from === "user";
 
-export type MessageContentProps = HTMLAttributes<HTMLDivElement>;
+  return (
+    <div
+      className={cn(
+        "group flex w-full items-end gap-2.5 py-4",
+        isUser ? "flex-row-reverse" : "flex-row",
+        className,
+      )}
+      {...props}
+    >
+      {avatar}
+      <div
+        className={cn(
+          "flex min-w-0 max-w-[85%] flex-col gap-1",
+          isUser ? "items-end" : "items-start",
+        )}
+      >
+        {name || badge ? (
+          <div
+            className={cn(
+              "flex items-center gap-1.5 px-1",
+              isUser ? "justify-end" : "justify-start",
+            )}
+          >
+            {name ? (
+              <span className="text-xs font-medium text-muted-foreground">
+                {name}
+              </span>
+            ) : null}
+            {badge}
+          </div>
+        ) : null}
+        {children}
+      </div>
+    </div>
+  );
+};
+
+export type MessageContentProps = HTMLAttributes<HTMLDivElement> & {
+  from: UIMessage["role"];
+};
 
 export const MessageContent = ({
-  children,
+  from,
   className,
+  children,
   ...props
-}: MessageContentProps) => (
-  <div
-    className={cn(
-      "flex flex-col gap-2 overflow-hidden rounded-lg px-4 py-3 text-foreground text-sm",
-      "group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground",
-      "group-[.is-assistant]:bg-secondary group-[.is-assistant]:text-foreground",
-      className,
-    )}
-    {...props}
-  >
-    <div className="is-user:dark">{children}</div>
-  </div>
-);
+}: MessageContentProps) => {
+  const isUser = from === "user";
+
+  return (
+    <div
+      className={cn(
+        "rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm",
+        isUser
+          ? "rounded-br-md bg-primary text-primary-foreground"
+          : "rounded-bl-md border border-border bg-card text-foreground",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+};
 
 export type MessageAvatarProps = ComponentProps<typeof Avatar> & {
-  src: string;
+  src?: string;
   name?: string;
 };
 
@@ -51,10 +98,10 @@ export const MessageAvatar = ({
   ...props
 }: MessageAvatarProps) => (
   <Avatar
-    className={cn("size-8 ring ring-1 ring-border", className)}
+    className={cn("size-8 shrink-0 ring ring-1 ring-border", className)}
     {...props}
   >
     <AvatarImage alt="" className="mt-0 mb-0" src={src} />
-    <AvatarFallback>{name?.slice(0, 2) || "ME"}</AvatarFallback>
+    <AvatarFallback>{name?.slice(0, 2).toUpperCase() || "ME"}</AvatarFallback>
   </Avatar>
 );

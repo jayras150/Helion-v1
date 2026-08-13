@@ -1,7 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/app/(auth)/auth";
-import { getChatIdsByUserId } from "@/lib/db/queries";
-import { getUserV0Client, getV0ClientErrorResponse } from "@/lib/v0-client";
+import {
+  getChatMessagesByChatId,
+  getChatsByUserId,
+} from "@/lib/db/queries";
 
 export async function GET(_request: NextRequest) {
   try {
@@ -11,31 +13,25 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ data: [] });
     }
 
-    const userChatIds = await getChatIdsByUserId({ userId: session.user.id });
+    const chats = await getChatsByUserId(session.user.id);
 
-    if (userChatIds.length === 0) {
-      return NextResponse.json({ data: [] });
-    }
+    const data = await Promise.all(
+      chats.map(async (chat) => {
+        const messages = await getChatMessagesByChatId(chat.id);
+        const firstUserMessage = messages.find((m) => m.role === "user");
+        return {
+          id: chat.id,
+          object: "chat",
+          name: chat.title || firstUserMessage?.content || "New chat",
+          createdAt: chat.createdAt.toISOString(),
+          updatedAt: chat.updatedAt.toISOString(),
+          messageCount: messages.length,
+        };
+      }),
+    );
 
-    const v0Client = await getUserV0Client(session).catch((error) => {
-      const response = getV0ClientErrorResponse(error);
-      if (response) {
-        throw response;
-      }
-      throw error;
-    });
-
-    const allChats = await v0Client.chats.find();
-
-    const userChats =
-      allChats.data?.filter((chat) => userChatIds.includes(chat.id)) || [];
-
-    return NextResponse.json({ data: userChats });
+    return NextResponse.json({ object: "list", data });
   } catch (error) {
-    if (error instanceof Response) {
-      return error;
-    }
-
     console.error("Chats fetch error:", error);
 
     return NextResponse.json(

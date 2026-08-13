@@ -2,15 +2,16 @@
 
 import {
   FolderKanban,
-  KeyRound,
   LogOut,
   MessageSquare,
+  ShieldCheck,
   User,
 } from "lucide-react";
 import Link from "next/link";
 import type { Session } from "next-auth";
 import { signOut } from "next-auth/react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useEffect, useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,16 +21,46 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useV0ApiKeyModal } from "@/contexts/v0-api-key-modal-context";
 
 interface UserNavProps {
   session: Session | null;
 }
 
 export function UserNav({ session }: UserNavProps) {
-  const { openKeyModal } = useV0ApiKeyModal();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(
+    session?.user?.role === "admin" ? true : null,
+  );
+
+  // Old JWTs don't carry a role — check once against the server so the Admin
+  // link still appears without requiring a fresh login.
+  useEffect(() => {
+    if (isAdmin !== null || !session?.user?.id) {
+      return;
+    }
+    let active = true;
+    fetch("/api/admin/me", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d: { isAdmin?: boolean }) => {
+        if (active) setIsAdmin(Boolean(d.isAdmin));
+      })
+      .catch(() => {
+        if (active) setIsAdmin(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isAdmin, session?.user?.id]);
+
+  const displayName = session?.user?.name || "User";
   const initials =
-    session?.user?.email?.split("@")[0]?.slice(0, 2)?.toUpperCase() || "U";
+    session?.user?.name
+      ?.split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") ||
+    session?.user?.email?.split("@")[0]?.slice(0, 2)?.toUpperCase() ||
+    "U";
 
   const isSignedOut = !session;
 
@@ -38,6 +69,9 @@ export function UserNav({ session }: UserNavProps) {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
+            {session?.user?.image ? (
+              <AvatarImage src={session.user.image} alt={displayName} />
+            ) : null}
             <AvatarFallback className="bg-primary text-primary-foreground">
               {isSignedOut ? <User className="h-4 w-4" /> : initials}
             </AvatarFallback>
@@ -48,7 +82,7 @@ export function UserNav({ session }: UserNavProps) {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="font-medium text-sm leading-none">
-              {isSignedOut ? "Not signed in" : "User"}
+              {isSignedOut ? "Not signed in" : displayName}
             </p>
             {session?.user?.email && (
               <p className="text-muted-foreground text-xs leading-none">
@@ -72,15 +106,14 @@ export function UserNav({ session }: UserNavProps) {
                 <span>Chats</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                openKeyModal();
-              }}
-              className="cursor-pointer"
-            >
-              <KeyRound className="mr-2 h-4 w-4" />
-              <span>API Key</span>
-            </DropdownMenuItem>
+            {isAdmin ? (
+              <DropdownMenuItem asChild>
+                <Link href="/admin" className="cursor-pointer">
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  <span>Admin Dashboard</span>
+                </Link>
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuSeparator />
           </>
         )}

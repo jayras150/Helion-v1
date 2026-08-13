@@ -1,11 +1,23 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/app/(auth)/auth";
-import { getUserV0Client, getV0ClientErrorResponse } from "@/lib/v0-client";
+import {
+  createChat,
+  getChatById,
+  getChatMessagesByChatId,
+  insertChatMessage,
+} from "@/lib/db/queries";
 
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     const { chatId } = await request.json();
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 },
+      );
+    }
 
     if (!chatId) {
       return NextResponse.json(
@@ -14,25 +26,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const v0Client = await getUserV0Client(session).catch((error) => {
-      const response = getV0ClientErrorResponse(error);
-      if (response) {
-        throw response;
-      }
-      throw error;
-    });
+    const chat = await getChatById(chatId);
 
-    const forkedChat = await v0Client.chats.fork({
-      chatId,
-      privacy: "private",
-    });
-
-    return NextResponse.json(forkedChat);
-  } catch (error) {
-    if (error instanceof Response) {
-      return error;
+    if (!chat || chat.userId !== session.user.id) {
+      return NextResponse.json(
+        { error: "Chat not found or access denied" },
+        { status: 404 },
+      );
     }
 
+    const messages = await getChatMessagesByChatId(chatId);
+
+    // Create a local copy of the chat with its messages.
+    const forkedChat = await createChat({
+      userId: session.user.id,
+      title: `${chat.title || "Chat"} (copy)`,
+    });
+
+    for (const msg of messages) {
+      await insertChatMessage({
+        chatId: forkedChat.id,
+        role: msg.role as "user" | "assistant",
+        content: msg.content,
+      });
+    }
+
+    return NextResponse.json({ id: forkedChat.id });
+  } catch (error) {
     console.error("Error forking chat:", error);
     return NextResponse.json({ error: "Failed to fork chat" }, { status: 500 });
   }

@@ -195,6 +195,9 @@ export const PromptInputTextarea = ({
   maxHeight = 164,
   ...props
 }: PromptInputTextareaProps) => {
+  const value = typeof props.value === "string" ? props.value : "";
+  const MAX_CHARS = 2000;
+
   const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
     if (e.key === "Enter") {
       // Don't submit if IME composition is in progress
@@ -217,21 +220,36 @@ export const PromptInputTextarea = ({
   };
 
   return (
-    <Textarea
-      className={cn(
-        "w-full resize-none rounded-none border-none p-3 shadow-none outline-none ring-0",
-        "field-sizing-content max-h-[6lh] bg-transparent dark:bg-transparent",
-        "focus-visible:ring-0",
-        className,
-      )}
-      name="message"
-      onChange={(e) => {
-        onChange?.(e);
-      }}
-      onKeyDown={handleKeyDown}
-      placeholder={placeholder}
-      {...props}
-    />
+    <div className="relative">
+      <Textarea
+        className={cn(
+          "w-full resize-none rounded-none border-none p-3 shadow-none outline-none ring-0",
+          "field-sizing-content max-h-[6lh] bg-transparent dark:bg-transparent",
+          "focus-visible:ring-0",
+          className,
+        )}
+        name="message"
+        maxLength={MAX_CHARS}
+        onChange={(e) => {
+          // Enforce the chat input limit even on paste / drop / voice input.
+          if (e.target.value.length > MAX_CHARS) {
+            e.target.value = e.target.value.slice(0, MAX_CHARS);
+          }
+          onChange?.(e);
+        }}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        {...props}
+      />
+      <span
+        className={cn(
+          "pointer-events-none absolute right-2 bottom-1.5 text-[10px] tabular-nums text-muted-foreground/70",
+          value.length >= MAX_CHARS && "font-medium text-destructive/80",
+        )}
+      >
+        {value.length}/{MAX_CHARS}
+      </span>
+    </div>
   );
 };
 

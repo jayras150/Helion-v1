@@ -17,6 +17,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Public static assets used by the sandboxed live-preview iframe.
+  // The iframe runs in an opaque (sandboxed) origin and does not send auth
+  // cookies, so these must always be served without authentication.
+  if (pathname.startsWith("/vendor/")) {
+    return NextResponse.next();
+  }
+
   // Check for required environment variables
   if (!process.env.AUTH_SECRET) {
     console.error(
@@ -70,6 +77,8 @@ export const config = {
     "/",
     "/chats/:path*",
     "/projects/:path*",
+    "/preview/:path*",
+    "/admin/:path*",
     "/api/:path*",
     "/login",
     "/register",

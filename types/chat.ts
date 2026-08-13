@@ -1,36 +1,3 @@
-import type { MessageBinaryFormat } from "@v0-sdk/react";
-
-/**
- * Task part types for structured task content in shared-components
- */
-export interface TaskPartChangedFile {
-  fileName?: string;
-  baseName?: string;
-}
-
-export interface TaskPartInspiration {
-  title?: string;
-  description?: string;
-}
-
-export interface TaskPart {
-  type: string;
-  query?: string;
-  filePaths?: string[];
-  filePath?: string;
-  count?: number;
-  answer?: string;
-  changedFiles?: TaskPartChangedFile[];
-  inspirations?: TaskPartInspiration[];
-  requirements?: unknown[];
-  status?: string;
-  message?: string;
-  description?: string;
-  text?: string;
-  error?: string;
-  source?: string;
-}
-
 /**
  * Chat-related types for use-chat hook
  */
@@ -45,12 +12,11 @@ export interface ChatMessageData {
   id: string;
   role: "user" | "assistant";
   content: string;
-  experimental_content?: MessageBinaryFormat;
 }
 
 export interface ChatMessage {
   type: "user" | "assistant";
-  content: string | MessageBinaryFormat;
+  content: string;
   isStreaming?: boolean;
   stream?: ReadableStream<Uint8Array> | null;
 }

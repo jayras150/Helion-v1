@@ -1,11 +1,8 @@
 "use client";
 
-import type { MessageBinaryFormat } from "@v0-sdk/react";
-import { StreamingMessage } from "@v0-sdk/react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   clearPromptFromStorage,
   createImageAttachment,
@@ -25,12 +22,13 @@ import {
 import { Suggestion, Suggestions } from "@/components/ai-elements/suggestion";
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessages } from "@/components/chat/chat-messages";
+import { BackendPanel } from "@/components/chat/backend-panel";
+import { FilesSidebar } from "@/components/chat/files-sidebar";
 import { PreviewPanel } from "@/components/chat/preview-panel";
 import { AppHeader } from "@/components/shared/app-header";
-import { ResizableLayout } from "@/components/shared/resizable-layout";
-import { useV0ApiKeyModal } from "@/contexts/v0-api-key-modal-context";
-import { V0_API_KEY_REQUIRED_CODE } from "@/lib/v0-key";
-import type { ChatData } from "@/types/chat";
+import { extractProjectFiles } from "@/lib/extract-files";
+import { pollForCorrectedMessage } from "@/lib/poll-corrected-message";
+import { parseScopeTag, type Scope } from "@/lib/scope";
 
 // Component that uses useSearchParams - needs to be wrapped in Suspense
 function SearchParamsHandler({ onReset }: { onReset: () => void }) {
@@ -55,7 +53,6 @@ function SearchParamsHandler({ onReset }: { onReset: () => void }) {
 export function HomeClient() {
   const { status } = useSession();
   const router = useRouter();
-  const { openKeyModal, requireV0ApiKey } = useV0ApiKeyModal();
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showChatInterface, setShowChatInterface] = useState(false);
@@ -64,31 +61,42 @@ export function HomeClient() {
   const [chatHistory, setChatHistory] = useState<
     Array<{
       type: "user" | "assistant";
-      content: string | MessageBinaryFormat;
+      content: string;
       isStreaming?: boolean;
       stream?: ReadableStream<Uint8Array> | null;
     }>
   >([]);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
-  const [currentChat, setCurrentChat] = useState<{
-    id: string;
-    demo?: string;
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isFilesOpen, setIsFilesOpen] = useState(false);
+  const [backendState, setBackendState] = useState<{
+    files: Record<string, string> | null;
+    scope: Scope;
+    chatId: string;
   } | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Latest finished assistant message → source code for the live preview.
+  const previewSource = useMemo(() => {
+    for (let i = chatHistory.length - 1; i >= 0; i -= 1) {
+      const msg = chatHistory[i];
+      if (msg.type === "assistant" && !msg.isStreaming && msg.content) {
+        return msg.content;
+      }
+    }
+    return null;
+  }, [chatHistory]);
 
   const handleReset = () => {
     // Reset all chat-related state
     setShowChatInterface(false);
     setChatHistory([]);
     setCurrentChatId(null);
-    setCurrentChat(null);
     setMessage("");
     setAttachments([]);
     setIsLoading(false);
-    setIsFullscreen(false);
-    setRefreshKey((prev) => prev + 1);
+    setIsPreviewOpen(false);
+    setBackendState(null);
 
     // Clear any stored data
     clearPromptFromStorage();
@@ -187,16 +195,9 @@ export function HomeClient() {
 
   const getStreamingBodyOrThrow = async (
     response: Response,
-    onMissingKey: () => void,
   ): Promise<ReadableStream<Uint8Array>> => {
     if (!response.ok) {
       const errorPayload = await getErrorPayload(response);
-
-      if (errorPayload.code === V0_API_KEY_REQUIRED_CODE) {
-        onMissingKey();
-        throw new Error("missing_v0_key_handled");
-      }
-
       throw new Error(errorPayload.message);
     }
 
@@ -207,13 +208,13 @@ export function HomeClient() {
     return response.body;
   };
 
-  const ensureAuthenticatedAndKey = async () => {
+  const ensureAuthenticated = async () => {
     if (status !== "authenticated") {
       router.push("/login?callbackUrl=/");
       return false;
     }
 
-    return requireV0ApiKey();
+    return true;
   };
 
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -222,7 +223,7 @@ export function HomeClient() {
       return;
     }
 
-    const canSend = await ensureAuthenticatedAndKey();
+    const canSend = await ensureAuthenticated();
     if (!canSend) {
       return;
     }
@@ -259,35 +260,28 @@ export function HomeClient() {
         }),
       });
 
-      const streamBody = await getStreamingBodyOrThrow(response, () => {
-        openKeyModal();
-        setIsLoading(false);
-        setShowChatInterface(false);
-        setChatHistory([]);
-        setMessage(userMessage);
-        setAttachments(currentAttachments);
-      });
+      const chatId = response.headers.get("X-Chat-Id");
+      const streamBody = await getStreamingBodyOrThrow(response);
 
       setIsLoading(false);
+
+      // Register the new chat (id comes from the response header).
+      if (chatId && !currentChatId) {
+        setCurrentChatId(chatId);
+        window.history.pushState(null, "", `/chats/${chatId}`);
+      }
 
       // Add streaming assistant response
       setChatHistory((prev) => [
         ...prev,
         {
           type: "assistant",
-          content: [],
+          content: "",
           isStreaming: true,
           stream: streamBody,
         },
       ]);
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === "missing_v0_key_handled"
-      ) {
-        return;
-      }
-
       console.error("Error creating chat:", error);
       setIsLoading(false);
 
@@ -307,40 +301,7 @@ export function HomeClient() {
     }
   };
 
-  const handleChatData = async (chatData: ChatData) => {
-    if (chatData.id) {
-      // Only set currentChat if it's not already set or if this is the main chat object
-      if (!currentChatId || chatData.object === "chat") {
-        setCurrentChatId(chatData.id);
-        setCurrentChat({ id: chatData.id });
-
-        // Update URL without triggering Next.js routing
-        window.history.pushState(null, "", `/chats/${chatData.id}`);
-      }
-
-      // Create ownership record for new chat (only if this is a new chat)
-      if (!currentChatId) {
-        try {
-          await fetch("/api/chat/ownership", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              chatId: chatData.id,
-            }),
-          });
-        } catch (error) {
-          console.error("Failed to create chat ownership:", error);
-          // Don't fail the UI if ownership creation fails
-        }
-      }
-    }
-  };
-
-  const handleStreamingComplete = async (
-    finalContent: string | MessageBinaryFormat,
-  ) => {
+  const handleStreamingComplete = async (finalContent: string) => {
     setIsLoading(false);
 
     // Update chat history with final content
@@ -358,40 +319,52 @@ export function HomeClient() {
       return updated;
     });
 
-    // Fetch demo URL after streaming completes
-    // Use the current state by accessing it in the state updater
-    setCurrentChat((prevCurrentChat) => {
-      if (prevCurrentChat?.id) {
-        // Fetch demo URL asynchronously
-        fetch(`/api/chats/${prevCurrentChat.id}`)
-          .then((response) => {
-            if (response.ok) {
-              return response.json();
-            }
-            console.warn("Failed to fetch chat details:", response.status);
-            return null;
-          })
-          .then((chatDetails) => {
-            if (chatDetails) {
-              const demoUrl =
-                chatDetails?.latestVersion?.demoUrl || chatDetails?.demo;
+    // Resolve scope + files: backend/fullstack → E2B sandbox panel,
+    // frontend/fullstack → local preview.
+    const scope = parseScopeTag(finalContent);
+    let files = extractProjectFiles(finalContent);
 
-              // Update the current chat with demo URL
-              if (demoUrl) {
-                setCurrentChat((prev) =>
-                  prev ? { ...prev, demo: demoUrl } : null,
-                );
-              }
-            }
-          })
-          .catch((error) => {
-            console.error("Error fetching demo URL:", error);
-          });
+    // The server auto-corrects plan-only responses in onFinish (after the
+    // stream already went out) and persists the real code to the DB. Poll for
+    // the corrected message so Files / Preview show the actual files.
+    if (!files && currentChatId && scope && scope !== "text") {
+      const knownContents = [
+        ...chatHistory.map((m) => m.content).filter(Boolean),
+        finalContent,
+      ];
+      const corrected = await pollForCorrectedMessage(
+        currentChatId,
+        knownContents,
+      );
+      if (corrected) {
+        files = extractProjectFiles(corrected);
+        setChatHistory((prev) => {
+          const updated = [...prev];
+          const lastIndex = updated.length - 1;
+          if (lastIndex >= 0 && updated[lastIndex].type === "assistant") {
+            updated[lastIndex] = {
+              ...updated[lastIndex],
+              content: corrected,
+              isStreaming: false,
+              stream: undefined,
+            };
+          }
+          return updated;
+        });
       }
+    }
 
-      // Return the current state unchanged for now
-      return prevCurrentChat;
-    });
+    if (files && scope !== "backend") {
+      setIsPreviewOpen(true);
+    }
+
+    if (
+      files &&
+      currentChatId &&
+      (scope === "backend" || scope === "fullstack")
+    ) {
+      setBackendState({ files, scope, chatId: currentChatId });
+    }
   };
 
   const handleChatSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -400,7 +373,7 @@ export function HomeClient() {
       return;
     }
 
-    const canSend = await ensureAuthenticatedAndKey();
+    const canSend = await ensureAuthenticated();
     if (!canSend) {
       return;
     }
@@ -425,11 +398,7 @@ export function HomeClient() {
         }),
       });
 
-      const streamBody = await getStreamingBodyOrThrow(response, () => {
-        openKeyModal();
-        setIsLoading(false);
-        setMessage(userMessage);
-      });
+      const streamBody = await getStreamingBodyOrThrow(response);
 
       setIsLoading(false);
 
@@ -438,19 +407,12 @@ export function HomeClient() {
         ...prev,
         {
           type: "assistant",
-          content: [],
+          content: "",
           isStreaming: true,
           stream: streamBody,
         },
       ]);
     } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message === "missing_v0_key_handled"
-      ) {
-        return;
-      }
-
       console.error("Error:", error);
 
       // Use the specific error message if available, otherwise fall back to generic message
@@ -478,60 +440,52 @@ export function HomeClient() {
           <SearchParamsHandler onReset={handleReset} />
         </Suspense>
 
-        <AppHeader />
-
-        <ResizableLayout
-          className="h-[calc(100vh-64px)]"
-          leftPanel={
-            <>
-              <ChatMessages
-                chatHistory={chatHistory}
-                isLoading={isLoading}
-                onStreamingComplete={handleStreamingComplete}
-                onChatData={handleChatData}
-                onStreamingStarted={() => setIsLoading(false)}
-              />
-
-              <ChatInput
-                message={message}
-                setMessage={setMessage}
-                onSubmit={handleChatSendMessage}
-                isLoading={isLoading}
-                showSuggestions={false}
-              />
-            </>
-          }
-          rightPanel={
-            <PreviewPanel
-              currentChat={currentChat}
-              isFullscreen={isFullscreen}
-              setIsFullscreen={setIsFullscreen}
-              refreshKey={refreshKey}
-              setRefreshKey={setRefreshKey}
-            />
-          }
+        <AppHeader
+          onPreview={() => setIsPreviewOpen(true)}
+          previewActive={isPreviewOpen}
+          previewDisabled={!previewSource}
+          onOpenFiles={() => setIsFilesOpen(true)}
+          filesDisabled={!previewSource}
         />
 
-        {/* Hidden streaming component for initial response */}
-        {chatHistory.some((msg) => msg.isStreaming && msg.stream) && (
-          <div className="hidden">
-            {chatHistory.map((msg, index) =>
-              msg.isStreaming && msg.stream ? (
-                <StreamingMessage
-                  key={`streaming-${msg.type}-${index}`}
-                  stream={msg.stream}
-                  messageId={`msg-${index}`}
-                  onComplete={handleStreamingComplete}
-                  onChatData={handleChatData}
-                  onError={(error) => {
-                    console.error("Streaming error:", error);
-                    setIsLoading(false);
-                  }}
-                />
-              ) : null,
-            )}
-          </div>
+        <div className="flex h-[calc(100vh-64px)] flex-col">
+          <ChatMessages
+            chatHistory={chatHistory}
+            isLoading={isLoading}
+            onStreamingComplete={handleStreamingComplete}
+            onStreamingStarted={() => setIsLoading(false)}
+          />
+
+          {backendState ? (
+            <BackendPanel
+              files={backendState.files}
+              scope={backendState.scope as "backend" | "fullstack"}
+              chatId={backendState.chatId}
+            />
+          ) : null}
+
+          <ChatInput
+            message={message}
+            setMessage={setMessage}
+            onSubmit={handleChatSendMessage}
+            isLoading={isLoading}
+            showSuggestions={false}
+          />
+        </div>
+
+        {isPreviewOpen && (
+          <PreviewPanel
+            sourceCode={previewSource}
+            onClose={() => setIsPreviewOpen(false)}
+            chatId={currentChatId}
+          />
         )}
+
+        <FilesSidebar
+          open={isFilesOpen}
+          sourceCode={previewSource}
+          onClose={() => setIsFilesOpen(false)}
+        />
       </div>
     );
   }
@@ -587,8 +541,8 @@ export function HomeClient() {
                 <PromptInputTools>
                   <PromptInputMicButton
                     onTranscript={(transcript) => {
-                      setMessage(
-                        (prev) => prev + (prev ? " " : "") + transcript,
+                      setMessage((prev) =>
+                        (prev + (prev ? " " : "") + transcript).slice(0, 2000),
                       );
                     }}
                     onError={(error) => {
@@ -718,13 +672,8 @@ export function HomeClient() {
           {/* Footer */}
           <div className="mt-16 text-center text-muted-foreground text-sm">
             <p>
-              Powered by{" "}
-              <Link
-                href="https://v0-sdk.dev"
-                className="text-foreground hover:underline"
-              >
-                v0 SDK
-              </Link>
+              Powered by your own{" "}
+              <span className="text-foreground">AI provider</span>
             </p>
           </div>
         </div>

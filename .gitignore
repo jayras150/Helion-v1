@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# E2B project snapshots (runtime state backups)
+/data/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -150,7 +150,11 @@ export function ChatInput({
             <PromptInputTools>
               <PromptInputMicButton
                 onTranscript={(transcript) => {
-                  setMessage(message + (message ? " " : "") + transcript);
+                  const next = (message + (message ? " " : "") + transcript).slice(
+                    0,
+                    2000,
+                  );
+                  setMessage(next);
                 }}
                 onError={(error) => {
                   console.error("Speech recognition error:", error);

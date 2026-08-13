@@ -1,62 +1,11 @@
-import type { MessageBinaryFormat } from "@v0-sdk/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import useSWR, { mutate } from "swr";
 import { useStreaming } from "@/contexts/streaming-context";
-import { useV0ApiKeyModal } from "@/contexts/v0-api-key-modal-context";
-import { V0_API_KEY_REQUIRED_CODE } from "@/lib/v0-key";
-import type { Chat, ChatData, ChatMessage } from "@/types/chat";
-
-/**
- * Extracts a chat ID from a nested content structure.
- * Validates that the ID looks like a real chat ID (UUID-like format).
- */
-function extractChatIdFromContent(content: unknown[]): string | undefined {
-  let foundChatId: string | undefined;
-
-  const isValidChatId = (id: string): boolean => {
-    if (id === "hello-world" || id.length <= 10) {
-      return false;
-    }
-    return (id.includes("-") && id.length > 20) || id.length > 15;
-  };
-
-  const search = (obj: unknown): void => {
-    if (foundChatId || !obj || typeof obj !== "object") {
-      return;
-    }
-
-    const record = obj as Record<string, unknown>;
-
-    if (
-      record.chatId &&
-      typeof record.chatId === "string" &&
-      isValidChatId(record.chatId)
-    ) {
-      foundChatId = record.chatId;
-      return;
-    }
-
-    if (
-      !foundChatId &&
-      record.id &&
-      typeof record.id === "string" &&
-      isValidChatId(record.id)
-    ) {
-      foundChatId = record.id;
-      return;
-    }
-
-    if (Array.isArray(obj)) {
-      obj.forEach(search);
-    } else {
-      Object.values(record).forEach(search);
-    }
-  };
-
-  content.forEach(search);
-  return foundChatId;
-}
+import { extractProjectFiles } from "@/lib/extract-files";
+import { pollForCorrectedMessage } from "@/lib/poll-corrected-message";
+import { parseScopeTag } from "@/lib/scope";
+import type { Chat, ChatMessage } from "@/types/chat";
 
 /**
  * Fetches chat details and updates SWR cache.
@@ -66,22 +15,13 @@ async function fetchAndCacheChatDetails(chatId: string): Promise<void> {
     const response = await fetch(`/api/chats/${chatId}`);
     if (response.ok) {
       const chatDetails = await response.json();
-      const demoUrl = chatDetails?.latestVersion?.demoUrl || chatDetails?.demo;
-      mutate(`/api/chats/${chatId}`, { ...chatDetails, demo: demoUrl }, false);
+      mutate(`/api/chats/${chatId}`, chatDetails, false);
     } else {
-      mutate(
-        `/api/chats/${chatId}`,
-        { id: chatId, demo: `Generated Chat ${chatId}` },
-        false,
-      );
+      mutate(`/api/chats/${chatId}`, { id: chatId }, false);
     }
   } catch (error) {
     console.error("Error fetching chat details:", error);
-    mutate(
-      `/api/chats/${chatId}`,
-      { id: chatId, demo: `Generated Chat ${chatId}` },
-      false,
-    );
+    mutate(`/api/chats/${chatId}`, { id: chatId }, false);
   }
 }
 
@@ -132,42 +72,37 @@ async function parseErrorResponse(
 export function useChat(chatId: string) {
   const router = useRouter();
   const { handoff, clearHandoff } = useStreaming();
-  const { openKeyModal, requireV0ApiKey } = useV0ApiKeyModal();
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
 
-  const getStreamingBodyOrThrow = useCallback(
-    async (response: Response, userMessage: string) => {
-      if (!response.ok) {
-        const errorPayload = await parseErrorResponse(response);
+  const getStreamingBodyOrThrow = useCallback(async (response: Response) => {
+    if (!response.ok) {
+      const errorPayload = await parseErrorResponse(response);
+      throw new Error(errorPayload.message);
+    }
 
-        if (errorPayload.code === V0_API_KEY_REQUIRED_CODE) {
-          openKeyModal();
-          setMessage(userMessage);
-          setIsLoading(false);
-          setChatHistory((prev) => prev.slice(0, -1));
-          throw new Error("missing_v0_key_handled");
-        }
+    if (!response.body) {
+      throw new Error("No response body for streaming");
+    }
 
-        throw new Error(errorPayload.message);
-      }
-
-      if (!response.body) {
-        throw new Error("No response body for streaming");
-      }
-
-      return response.body;
-    },
-    [openKeyModal],
-  );
+    return response.body;
+  }, []);
 
   // Use SWR to fetch chat data
   const { data: currentChat, isLoading: isLoadingChat } = useSWR<Chat>(
     chatId ? `/api/chats/${chatId}` : null,
     {
       onError: (error) => {
+        const status = (error as { status?: number })?.status;
+        if (status === 404 || status === 403) {
+          // Chat tidak ditemukan / bukan milik user — redirect balik ke home
+          // tanpa membanjiri console (404 adalah kondisi yang wajar untuk
+          // link chat yang sudah dihapus atau basi).
+          router.push("/");
+          return;
+        }
         console.error("Error loading chat:", error);
         // Redirect to home if chat not found
         router.push("/");
@@ -183,8 +118,7 @@ export function useChat(chatId: string) {
           setChatHistory(
             chat.messages.map((msg) => ({
               type: msg.role,
-              // Use experimental_content if available, otherwise fall back to plain content
-              content: msg.experimental_content || msg.content,
+              content: msg.content,
             })),
           );
         }
@@ -212,7 +146,7 @@ export function useChat(chatId: string) {
         ...prev,
         {
           type: "assistant",
-          content: [],
+          content: "",
           isStreaming: true,
           stream: handoff.stream,
         },
@@ -230,11 +164,6 @@ export function useChat(chatId: string) {
     ) => {
       e.preventDefault();
       if (!message.trim() || isLoading || !chatId) {
-        return;
-      }
-
-      const hasKey = await requireV0ApiKey();
-      if (!hasKey) {
         return;
       }
 
@@ -258,26 +187,19 @@ export function useChat(chatId: string) {
           }),
         });
 
-        const streamBody = await getStreamingBodyOrThrow(response, userMessage);
+        const streamBody = await getStreamingBodyOrThrow(response);
 
         setIsStreaming(true);
         setChatHistory((prev) => [
           ...prev,
           {
             type: "assistant",
-            content: [],
+            content: "",
             isStreaming: true,
             stream: streamBody,
           },
         ]);
       } catch (error) {
-        if (
-          error instanceof Error &&
-          error.message === "missing_v0_key_handled"
-        ) {
-          return;
-        }
-
         console.error("Error:", error);
         const errorMessage =
           error instanceof Error
@@ -290,24 +212,16 @@ export function useChat(chatId: string) {
         setIsLoading(false);
       }
     },
-    [message, isLoading, chatId, getStreamingBodyOrThrow, requireV0ApiKey],
+    [message, isLoading, chatId, getStreamingBodyOrThrow],
   );
 
   const handleStreamingComplete = useCallback(
-    async (finalContent: string | MessageBinaryFormat) => {
+    async (finalContent: string): Promise<string> => {
       setIsStreaming(false);
       setIsLoading(false);
 
       // Refresh current chat details
       await fetchAndCacheChatDetails(chatId);
-
-      // Try to extract chat ID from final content if we don't have a current chat
-      if (!currentChat && finalContent && Array.isArray(finalContent)) {
-        const newChatId = extractChatIdFromContent(finalContent);
-        if (newChatId) {
-          await fetchAndCacheChatDetails(newChatId);
-        }
-      }
 
       // Update chat history with the final content
       setChatHistory((prev) => {
@@ -323,27 +237,42 @@ export function useChat(chatId: string) {
         }
         return updated;
       });
-    },
-    [chatId, currentChat],
-  );
 
-  const handleChatData = useCallback(
-    async (chatData: ChatData) => {
-      if (chatData.id && !currentChat) {
-        // Only update with basic chat data, without demo URL
-        // The demo URL will be fetched in handleStreamingComplete
-        mutate(
-          `/api/chats/${chatData.id}`,
-          {
-            id: chatData.id,
-            url: chatData.webUrl || chatData.url,
-            // Don't set demo URL here - wait for streaming to complete
-          },
-          false,
-        );
+      // The server auto-corrects plan-only responses in onFinish (after the
+      // stream already went out) and persists the real code to the DB. When
+      // the streamed reply carries no code, poll for the corrected message so
+      // Files / Preview show the actual files.
+      const scope = parseScopeTag(finalContent);
+      const files = extractProjectFiles(finalContent);
+      if (!files && scope && scope !== "text") {
+        const knownContents = [
+          ...chatHistory.map((m) => m.content).filter(Boolean),
+          finalContent,
+        ];
+        const corrected = await pollForCorrectedMessage(chatId, knownContents);
+        if (corrected) {
+          setChatHistory((prev) => {
+            const updated = [...prev];
+            const lastIndex = updated.length - 1;
+            if (lastIndex >= 0 && updated[lastIndex].type === "assistant") {
+              updated[lastIndex] = {
+                ...updated[lastIndex],
+                content: corrected,
+                isStreaming: false,
+                stream: undefined,
+              };
+            }
+            return updated;
+          });
+          return corrected;
+        }
       }
+
+      return finalContent;
     },
-    [currentChat],
+    // chatHistory is intentionally included so `knownContents` reflects the
+    // latest history when the correction poll runs.
+    [chatId, chatHistory],
   );
 
   return {
@@ -357,6 +286,5 @@ export function useChat(chatId: string) {
     isLoadingChat,
     handleSendMessage,
     handleStreamingComplete,
-    handleChatData,
   };
 }

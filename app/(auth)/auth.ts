@@ -1,8 +1,10 @@
 import { compare } from "bcrypt-ts";
 import NextAuth, { type DefaultSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import GitHub from "next-auth/providers/github";
+import Google from "next-auth/providers/google";
 import { DUMMY_PASSWORD } from "@/lib/constants";
-import { getUser } from "@/lib/db/queries";
+import { findOrCreateOAuthUser, getUser } from "@/lib/db/queries";
 import { authConfig } from "./auth.config";
 
 const isDevelopment = process.env.NODE_ENV === "development";
@@ -21,9 +23,30 @@ declare module "next-auth" {
   interface Session extends DefaultSession {
     user: {
       id: string;
+      role?: string;
     } & DefaultSession["user"];
   }
+  interface User {
+    role?: string;
+  }
 }
+
+/** True when at least one OAuth provider is configured in the environment. */
+export function oauthAvailable(): boolean {
+  return (
+    Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET) ||
+    Boolean(process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET)
+  );
+}
+
+const oauthProviders = [
+  process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
+    ? Google({ allowDangerousEmailAccountLinking: true })
+    : null,
+  process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET
+    ? GitHub({ allowDangerousEmailAccountLinking: true })
+    : null,
+].filter((p): p is NonNullable<typeof p> => Boolean(p));
 
 export const {
   handlers: { GET, POST },
@@ -33,6 +56,7 @@ export const {
 } = NextAuth({
   ...authConfig,
   providers: [
+    ...oauthProviders,
     Credentials({
       credentials: {
         email: { label: "Email", type: "email" },
@@ -71,9 +95,30 @@ export const {
     }),
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      // For Google/GitHub, persist (or link) the user in our DB and make sure
+      // the JWT carries our own user id.
+      if (
+        account &&
+        (account.provider === "google" || account.provider === "github") &&
+        account.providerAccountId
+      ) {
+        const dbUser = await findOrCreateOAuthUser({
+          provider: account.provider,
+          providerAccountId: account.providerAccountId,
+          email: user.email ?? null,
+          name: user.name ?? null,
+          image: user.image ?? null,
+        });
+        user.id = dbUser.id;
+        user.role = dbUser.role;
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id as string;
+        token.role = user.role ?? "user";
       }
 
       return token;
@@ -81,6 +126,7 @@ export const {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.role = token.role as string | undefined;
       }
 
       return session;

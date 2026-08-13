@@ -36,6 +36,48 @@
       "when": 1757370487321,
       "tag": "0004_user_v0_api_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1760000000000,
+      "tag": "0005_local_chats",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1761000000000,
+      "tag": "0006_add_scope_deployment",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1762000000000,
+      "tag": "0007_add_oauth",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1763000000000,
+      "tag": "0008_add_screenshot",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1764000000000,
+      "tag": "0009_add_admin_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786458774664,
+      "tag": "0010_flashy_bill_hollister",
+      "breakpoints": true
     }
   ]
 }

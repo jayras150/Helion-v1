@@ -1,40 +1,101 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   clearPromptFromStorage,
   type ImageAttachment,
 } from "@/components/ai-elements/prompt-input";
 import { ChatInput } from "@/components/chat/chat-input";
 import { ChatMessages } from "@/components/chat/chat-messages";
+import { BackendPanel } from "@/components/chat/backend-panel";
+import { FilesSidebar } from "@/components/chat/files-sidebar";
 import { PreviewPanel } from "@/components/chat/preview-panel";
 import { AppHeader } from "@/components/shared/app-header";
-import { ResizableLayout } from "@/components/shared/resizable-layout";
 import { useChat } from "@/hooks/use-chat";
 import { useEventListener } from "@/hooks/use-event-listner";
-import { cn } from "@/lib/utils";
+import { extractProjectFiles } from "@/lib/extract-files";
+import { parseScopeTag, type Scope } from "@/lib/scope";
 
 export function ChatDetailClient() {
   const params = useParams();
   const chatId = params.chatId as string;
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isFilesOpen, setIsFilesOpen] = useState(false);
   const [attachments, setAttachments] = useState<ImageAttachment[]>([]);
+  const [backendPanel, setBackendPanel] = useState<{
+    files: Record<string, string>;
+    scope: Scope;
+    chatId: string;
+    contentKey: string;
+  } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const {
     message,
     setMessage,
-    currentChat,
     isLoading,
     setIsLoading,
     chatHistory,
     isLoadingChat,
     handleSendMessage,
     handleStreamingComplete,
-    handleChatData,
   } = useChat(chatId);
+
+  // Latest finished assistant message → source code for the live preview.
+  const previewSource = useMemo(() => {
+    for (let i = chatHistory.length - 1; i >= 0; i -= 1) {
+      const msg = chatHistory[i];
+      if (msg.type === "assistant" && !msg.isStreaming && msg.content) {
+        return msg.content;
+      }
+    }
+    return null;
+  }, [chatHistory]);
+
+  // Auto-open the preview after streaming completes (if the response contains
+  // project files) — but not for backend-only projects. The streamed content
+  // may be a plan-only reply that the server later auto-corrects; when that
+  // happens the corrected code is what reaches Files / Preview.
+  const handleStreamingDone = async (finalContent: string) => {
+    const effective =
+      (await handleStreamingComplete(finalContent)) ?? finalContent;
+    const scope = parseScopeTag(effective);
+    const files = extractProjectFiles(effective);
+    if (files && scope !== "backend") {
+      setIsPreviewOpen(true);
+    }
+  };
+
+  // Detect the latest backend/fullstack assistant message (from history or a
+  // fresh stream) and surface an E2B backend panel for it. A contentKey keeps
+  // the panel mounted without redeploying when unrelated history changes.
+  useEffect(() => {
+    if (isLoadingChat) {
+      return;
+    }
+    for (let i = chatHistory.length - 1; i >= 0; i -= 1) {
+      const msg = chatHistory[i];
+      if (msg.type !== "assistant" || msg.isStreaming || !msg.content) {
+        continue;
+      }
+      const scope = parseScopeTag(msg.content);
+      if (scope !== "backend" && scope !== "fullstack") {
+        continue;
+      }
+      const files = extractProjectFiles(msg.content);
+      if (!files) {
+        continue;
+      }
+      const contentKey = `${msg.content.length}-${msg.content.slice(-40)}`;
+      setBackendPanel((prev) =>
+        prev && prev.contentKey === contentKey
+          ? prev
+          : { files, scope, chatId, contentKey },
+      );
+      return;
+    }
+  }, [chatHistory, isLoadingChat, chatId]);
 
   // Wrapper function to handle attachments
   const handleSubmitWithAttachments = (
@@ -48,10 +109,10 @@ export function ChatDetailClient() {
     return handleSendMessage(e, attachmentUrls);
   };
 
-  // Handle fullscreen keyboard shortcuts
+  // Escape closes the full-screen preview
   useEventListener<Window, "keydown">("keydown", (event) => {
-    if (event.key === "Escape" && isFullscreen) {
-      setIsFullscreen(false);
+    if (event.key === "Escape" && isPreviewOpen) {
+      setIsPreviewOpen(false);
     }
   });
 
@@ -63,47 +124,55 @@ export function ChatDetailClient() {
   }, [isLoadingChat]);
 
   return (
-    <div
-      className={cn(
-        "min-h-screen bg-gray-50 dark:bg-black",
-        isFullscreen && "fixed inset-0 z-50",
-      )}
-    >
-      <AppHeader />
+    <div className="min-h-screen bg-gray-50 dark:bg-black">
+      <AppHeader
+        onPreview={() => setIsPreviewOpen(true)}
+        previewActive={isPreviewOpen}
+        previewDisabled={!previewSource}
+        onOpenFiles={() => setIsFilesOpen(true)}
+        filesDisabled={!previewSource}
+      />
 
-      <ResizableLayout
-        className="h-[calc(100vh-64px)]"
-        leftPanel={
-          <>
-            <ChatMessages
-              chatHistory={chatHistory}
-              isLoading={isLoading}
-              onStreamingComplete={handleStreamingComplete}
-              onChatData={handleChatData}
-              onStreamingStarted={() => setIsLoading(false)}
-            />
+      <div className="flex h-[calc(100vh-64px)] flex-col">
+        <ChatMessages
+          chatHistory={chatHistory}
+          isLoading={isLoading}
+          onStreamingComplete={handleStreamingDone}
+          onStreamingStarted={() => setIsLoading(false)}
+        />
 
-            <ChatInput
-              message={message}
-              setMessage={setMessage}
-              onSubmit={handleSubmitWithAttachments}
-              isLoading={isLoading}
-              showSuggestions={false}
-              attachments={attachments}
-              onAttachmentsChange={setAttachments}
-              textareaRef={textareaRef}
-            />
-          </>
-        }
-        rightPanel={
-          <PreviewPanel
-            currentChat={currentChat || null}
-            isFullscreen={isFullscreen}
-            setIsFullscreen={setIsFullscreen}
-            refreshKey={refreshKey}
-            setRefreshKey={setRefreshKey}
+        {backendPanel ? (
+          <BackendPanel
+            files={backendPanel.files}
+            scope={backendPanel.scope as "backend" | "fullstack"}
+            chatId={backendPanel.chatId}
           />
-        }
+        ) : null}
+
+        <ChatInput
+          message={message}
+          setMessage={setMessage}
+          onSubmit={handleSubmitWithAttachments}
+          isLoading={isLoading}
+          showSuggestions={false}
+          attachments={attachments}
+          onAttachmentsChange={setAttachments}
+          textareaRef={textareaRef}
+        />
+      </div>
+
+      {isPreviewOpen && (
+        <PreviewPanel
+          sourceCode={previewSource}
+          onClose={() => setIsPreviewOpen(false)}
+          chatId={chatId}
+        />
+      )}
+
+      <FilesSidebar
+        open={isFilesOpen}
+        sourceCode={previewSource}
+        onClose={() => setIsFilesOpen(false)}
       />
     </div>
   );

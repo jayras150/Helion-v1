@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/app/(auth)/auth";
-import { getChatOwnership } from "@/lib/db/queries";
-import { getUserV0Client, getV0ClientErrorResponse } from "@/lib/v0-client";
+import { getChatById } from "@/lib/db/queries";
 
 export async function PATCH(
   request: NextRequest,
@@ -25,8 +24,8 @@ export async function PATCH(
       );
     }
 
-    const ownership = await getChatOwnership({ v0ChatId: chatId });
-    if (!ownership || ownership.user_id !== session.user.id) {
+    const chat = await getChatById(chatId);
+    if (!chat || chat.userId !== session.user.id) {
       return NextResponse.json(
         { error: "Chat not found or access denied" },
         { status: 404 },
@@ -35,37 +34,15 @@ export async function PATCH(
 
     const { privacy } = await request.json();
 
-    if (
-      !(
-        privacy &&
-        ["public", "private", "team", "team-edit", "unlisted"].includes(privacy)
-      )
-    ) {
-      return NextResponse.json(
-        { error: "Invalid privacy setting" },
-        { status: 400 },
-      );
-    }
+    // Local chats are inherently private — accept the requested value
+    // so the UI state stays consistent, but nothing is exposed publicly.
+    const safePrivacy =
+      privacy && ["public", "private", "team", "team-edit", "unlisted"].includes(privacy)
+        ? privacy
+        : "private";
 
-    const v0Client = await getUserV0Client(session).catch((error) => {
-      const response = getV0ClientErrorResponse(error);
-      if (response) {
-        throw response;
-      }
-      throw error;
-    });
-
-    const updatedChat = await v0Client.chats.update({
-      chatId,
-      privacy,
-    });
-
-    return NextResponse.json(updatedChat);
+    return NextResponse.json({ id: chat.id, privacy: safePrivacy });
   } catch (error) {
-    if (error instanceof Response) {
-      return error;
-    }
-
     console.error("Change Chat Visibility Error:", error);
 
     return NextResponse.json(
