@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/(auth)/auth";
+import { getServerUser } from "@/lib/auth";
 import { getChatById } from "@/lib/db/queries";
 
 export async function PATCH(
@@ -7,10 +7,10 @@ export async function PATCH(
   { params }: { params: Promise<{ chatId: string }> },
 ) {
   try {
-    const session = await auth();
+    const user = await getServerUser();
     const { chatId } = await params;
 
-    if (!session?.user?.id) {
+    if (!user?.id) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 },
@@ -25,7 +25,7 @@ export async function PATCH(
     }
 
     const chat = await getChatById(chatId);
-    if (!chat || chat.userId !== session.user.id) {
+    if (!chat || chat.userId !== user.id) {
       return NextResponse.json(
         { error: "Chat not found or access denied" },
         { status: 404 },

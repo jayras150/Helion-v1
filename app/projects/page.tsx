@@ -1,16 +1,16 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/app/(auth)/auth";
+import { getServerUser } from "@/lib/auth";
 import { ProjectsPage } from "@/components/projects/projects-page";
 import { getProjectsByUserId } from "@/lib/projects";
 
 export default async function Projects() {
-  const session = await auth();
+  const user = await getServerUser();
 
-  if (!session?.user?.id) {
+  if (!user?.id) {
     redirect("/login");
   }
 
-  const projects = await getProjectsByUserId(session.user.id);
+  const projects = await getProjectsByUserId(user.id);
 
   return <ProjectsPage projects={projects} />;
 }

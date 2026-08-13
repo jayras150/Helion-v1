@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/hooks/use-user";
 import { Sparkles } from "lucide-react";
 import {
   Conversation,

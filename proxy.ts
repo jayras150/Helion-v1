@@ -1,6 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { guestRegex, isDevelopmentEnvironment } from "./lib/constants";
+import { updateSession } from "./lib/supabase/middleware";
+
+// Server-safe Supabase check (do not import the "use client" supabase module
+// into the edge middleware).
+const supabaseEnabled = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+);
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -22,6 +30,11 @@ export async function proxy(request: NextRequest) {
   // cookies, so these must always be served without authentication.
   if (pathname.startsWith("/vendor/")) {
     return NextResponse.next();
+  }
+
+  // Supabase mode: refresh the session and protect routes via Supabase.
+  if (supabaseEnabled) {
+    return updateSession(request);
   }
 
   // Check for required environment variables

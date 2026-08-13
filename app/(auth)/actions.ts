@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { z } from "zod";
+import { isSupabaseConfigured } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { createUser, getUser } from "@/lib/db/queries";
 import { signIn } from "./auth";
 
@@ -31,6 +33,22 @@ export async function signInAction(
       email: formData.get("email"),
       password: formData.get("password"),
     });
+
+    if (isSupabaseConfigured()) {
+      const supabase = await createClient();
+      const { error } = await supabase.auth.signInWithPassword({
+        email: validatedData.email,
+        password: validatedData.password,
+      });
+      if (error) {
+        return {
+          type: "error",
+          message: "Invalid credentials. Please try again.",
+        };
+      }
+      revalidatePath("/");
+      redirect("/");
+    }
 
     await signIn("credentials", {
       email: validatedData.email,
@@ -77,6 +95,47 @@ export async function signUpAction(
       email: formData.get("email"),
       password: formData.get("password"),
     });
+
+    if (isSupabaseConfigured()) {
+      const existingUsers = await getUser(validatedData.email);
+      if (existingUsers.length > 0) {
+        return {
+          type: "error",
+          message: "User already exists. Please sign in instead.",
+        };
+      }
+
+      const supabase = await createClient();
+      const { data, error } = await supabase.auth.signUp({
+        email: validatedData.email,
+        password: validatedData.password,
+        options: {
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        return {
+          type: "error",
+          message:
+            error.message === "User already registered"
+              ? "User already exists. Please sign in instead."
+              : "Something went wrong. Please try again.",
+        };
+      }
+
+      // If email confirmation is required, no session is created yet.
+      if (!data.session) {
+        return {
+          type: "success",
+          message:
+            "Account created! Check your email to confirm, then sign in.",
+        };
+      }
+
+      revalidatePath("/");
+      redirect("/");
+    }
 
     const existingUsers = await getUser(validatedData.email);
 

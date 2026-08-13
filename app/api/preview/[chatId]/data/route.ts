@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { auth } from "@/app/(auth)/auth";
+import { getServerUser } from "@/lib/auth";
 import { getChatById, getChatMessagesByChatId } from "@/lib/db/queries";
 import { extractProjectFiles } from "@/lib/extract-files";
 
@@ -17,14 +17,14 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ chatId: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const user = await getServerUser();
+  if (!user?.id) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
   const { chatId } = await params;
   const chat = await getChatById(chatId);
-  if (!chat || chat.userId !== session.user.id) {
+  if (!chat || chat.userId !== user.id) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 

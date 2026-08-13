@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { SandboxNotFoundError } from "e2b";
-import { auth } from "@/app/(auth)/auth";
+import { getServerUser } from "@/lib/auth";
 import { snapshotSandbox } from "@/lib/e2b";
 import {
   getLatestAssistantMessage,
@@ -19,8 +19,8 @@ import { getSnapshotInfo, saveSnapshot } from "@/lib/snapshots";
  * can be restored later (even months later, after the sandbox is long gone).
  */
 export async function GET(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const user = await getServerUser();
+  if (!user?.id) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
@@ -34,8 +34,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const user = await getServerUser();
+  if (!user?.id) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 

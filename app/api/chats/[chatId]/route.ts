@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/(auth)/auth";
+import { getServerUser } from "@/lib/auth";
 import {
   deleteChat,
   getChatById,
@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ chatId: string }> },
 ) {
   try {
-    const session = await auth();
+    const user = await getServerUser();
     const { chatId } = await params;
 
     if (!chatId) {
@@ -27,7 +27,7 @@ export async function GET(
       return NextResponse.json({ error: "Chat not found" }, { status: 404 });
     }
 
-    if (session?.user?.id && chat.userId !== session.user.id) {
+    if (user?.id && chat.userId !== user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -65,10 +65,10 @@ export async function DELETE(
   { params }: { params: Promise<{ chatId: string }> },
 ) {
   try {
-    const session = await auth();
+    const user = await getServerUser();
     const { chatId } = await params;
 
-    if (!session?.user?.id) {
+    if (!user?.id) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 },
@@ -82,7 +82,7 @@ export async function DELETE(
       );
     }
 
-    await deleteChat({ chatId, userId: session.user.id });
+    await deleteChat({ chatId, userId: user.id });
 
     return NextResponse.json({ success: true });
   } catch (error) {

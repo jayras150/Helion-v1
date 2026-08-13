@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { signIn } from "next-auth/react";
 import { signInAction, signUpAction } from "@/app/(auth)/actions";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -39,6 +40,20 @@ export function AuthForm({ type, oauthAvailable = false }: AuthFormProps) {
   );
   const [showPassword, setShowPassword] = useState(false);
 
+  const handleOAuth = async (provider: "google" | "github") => {
+    if (isSupabaseConfigured()) {
+      const supabase = createClient();
+      await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+    } else {
+      await signIn(provider, { callbackUrl: "/?refresh=session" });
+    }
+  };
+
   return (
     <div className="space-y-5">
       {oauthAvailable ? (
@@ -48,9 +63,7 @@ export function AuthForm({ type, oauthAvailable = false }: AuthFormProps) {
               type="button"
               variant="outline"
               className="h-10 gap-2"
-              onClick={() =>
-                signIn("google", { callbackUrl: "/?refresh=session" })
-              }
+              onClick={() => handleOAuth("google")}
             >
               <GoogleIcon className="size-4" />
               Google
@@ -59,9 +72,7 @@ export function AuthForm({ type, oauthAvailable = false }: AuthFormProps) {
               type="button"
               variant="outline"
               className="h-10 gap-2"
-              onClick={() =>
-                signIn("github", { callbackUrl: "/?refresh=session" })
-              }
+              onClick={() => handleOAuth("github")}
             >
               <GithubIcon className="size-4" />
               GitHub
@@ -136,6 +147,11 @@ export function AuthForm({ type, oauthAvailable = false }: AuthFormProps) {
 
       {state?.type === "error" && (
         <div className="rounded-md bg-destructive/10 px-3 py-2.5 text-destructive text-sm">
+          {state.message}
+        </div>
+      )}
+      {state?.type === "success" && (
+        <div className="rounded-md bg-emerald-500/10 px-3 py-2.5 text-emerald-600 text-sm dark:text-emerald-400">
           {state.message}
         </div>
       )}

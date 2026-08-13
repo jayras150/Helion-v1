@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/hooks/use-user";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   clearPromptFromStorage,

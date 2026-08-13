@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/hooks/use-user";
 import { FolderTree, Monitor } from "lucide-react";
 import { Suspense, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";

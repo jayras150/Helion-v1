@@ -5,7 +5,6 @@ import { cookies } from "next/headers";
  * Supabase server client for the App Router (Server Components / Route
  * Handlers / Server Actions).
  *
- * NOTE: not yet enabled — used when migrating from NextAuth to Supabase Auth.
  * Requires env: NEXT_PUBLIC_SUPABASE_URL + NEXT_PUBLIC_SUPABASE_ANON_KEY.
  */
 export async function createClient() {

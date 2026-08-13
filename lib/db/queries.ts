@@ -173,6 +173,61 @@ export async function findOrCreateOAuthUser({
 }
 
 /**
+ * Gets (or creates) the app `users` row for a Supabase Auth user, keyed by
+ * email. The row carries the app-level id / role used by every chat/project
+ * query, so Supabase Auth only handles authentication while the app DB keeps
+ * its existing shape.
+ */
+export async function getOrCreateUserByEmail({
+  email,
+  name,
+  image,
+}: {
+  email?: string | null;
+  name?: string | null;
+  image?: string | null;
+}): Promise<User> {
+  try {
+    if (!email) {
+      throw new Error("Cannot map a Supabase user without an email");
+    }
+    const [existing] = await getDb()
+      .select()
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    if (existing) {
+      if ((name && existing.name !== name) || (image && existing.image !== image)) {
+        const [updated] = await getDb()
+          .update(users)
+          .set({ name: name ?? existing.name, image: image ?? existing.image })
+          .where(eq(users.id, existing.id))
+          .returning();
+        return updated ?? existing;
+      }
+      return existing;
+    }
+    // New Supabase user → create an app user row (password managed by Supabase).
+    const [created] = await getDb()
+      .insert(users)
+      .values({
+        email,
+        password: null,
+        name: name ?? null,
+        image: image ?? null,
+        provider: "supabase",
+      })
+      .returning();
+    // Self-hosted bootstrap: the very first account becomes the admin.
+    await promoteIfFirstUser(created.id);
+    return created;
+  } catch (error) {
+    console.error("Failed to get or create user by email in database");
+    throw error;
+  }
+}
+
+/**
  * Gets the number of chats created by a user in the specified time window.
  * Used for rate limiting authenticated users.
  */

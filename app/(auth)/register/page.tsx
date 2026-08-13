@@ -1,12 +1,12 @@
 import { Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
-import { auth, oauthAvailable } from "../auth";
+import { getServerUser, oauthAvailable } from "@/lib/auth";
 
 export default async function RegisterPage() {
-  const session = await auth();
+  const user = await getServerUser();
 
-  if (session) {
+  if (user) {
     redirect("/");
   }
 

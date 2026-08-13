@@ -8,8 +8,7 @@ import {
   User,
 } from "lucide-react";
 import Link from "next/link";
-import type { Session } from "next-auth";
-import { signOut } from "next-auth/react";
+import { signOut, type SessionData } from "@/hooks/use-user";
 import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface UserNavProps {
-  session: Session | null;
+  session: SessionData;
 }
 
 export function UserNav({ session }: UserNavProps) {
@@ -135,7 +134,7 @@ export function UserNav({ session }: UserNavProps) {
           <DropdownMenuItem
             onClick={async () => {
               // Clear any local session data first
-              await signOut({ callbackUrl: "/", redirect: true });
+              await signOut();
             }}
             className="cursor-pointer"
           >

@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { auth } from "@/app/(auth)/auth";
+import { getServerUser } from "@/lib/auth";
 import { snapshotSandbox, stopSandbox } from "@/lib/e2b";
 import {
   getLatestAssistantMessage,
@@ -15,8 +15,8 @@ import { saveSnapshot } from "@/lib/snapshots";
  * kills the sandbox so nothing keeps running (and no E2B cost while idle).
  */
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const user = await getServerUser();
+  if (!user?.id) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 

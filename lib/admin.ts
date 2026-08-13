@@ -1,5 +1,5 @@
 import "server-only";
-import { auth } from "@/app/(auth)/auth";
+import { getServerUser } from "@/lib/auth";
 import {
   countAdminUsers,
   getAdminUser,
@@ -29,8 +29,8 @@ function adminEmailsFromEnv(): Set<string> {
 }
 
 export async function requireAdmin(): Promise<AdminUser | null> {
-  const session = await auth();
-  const userId = session?.user?.id;
+  const authUser = await getServerUser();
+  const userId = authUser?.id;
   if (!userId) {
     return null;
   }

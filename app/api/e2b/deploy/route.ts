@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { auth } from "@/app/(auth)/auth";
+import { getServerUser } from "@/lib/auth";
 import { deployBackend, hasE2BKey } from "@/lib/e2b";
 import {
   getLatestAssistantMessage,
@@ -19,8 +19,8 @@ import { loadSnapshot } from "@/lib/snapshots";
  * outside the HELION origin.
  */
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const user = await getServerUser();
+  if (!user?.id) {
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
   if (!hasE2BKey()) {

@@ -1,8 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import type { Session } from "next-auth";
 import { streamText } from "ai";
-import { auth } from "@/app/(auth)/auth";
+import { getServerUser, type AppUser } from "@/lib/auth";
 import { getModel, hasAiKey } from "@/lib/ai";
 import {
   createChat,
@@ -18,10 +17,10 @@ import { detectScopeFromPrompt, parseScopeTag } from "@/lib/scope";
 import { buildChatSystemPrompt } from "@/lib/skills";
 
 async function checkRateLimit(
-  session: Session | null,
+  user: AppUser | null,
 ): Promise<Response | null> {
   // Require authentication
-  if (!session?.user?.id) {
+  if (!user?.id) {
     return NextResponse.json(
       { error: "Authentication required" },
       { status: 401 },
@@ -29,7 +28,7 @@ async function checkRateLimit(
   }
 
   const chatCount = await getChatCountByUserId({
-    userId: session.user.id,
+    userId: user.id,
     differenceInHours: 24,
   });
 
@@ -117,10 +116,10 @@ async function ensureCodeOutput(
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    const user = await getServerUser();
     const { message, chatId, streaming } = await request.json();
 
-    if (!session?.user?.id) {
+    if (!user?.id) {
       return NextResponse.json(
         { error: "Authentication required" },
         { status: 401 },
@@ -144,7 +143,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const rateLimitResponse = await checkRateLimit(session);
+    const rateLimitResponse = await checkRateLimit(user);
     if (rateLimitResponse) {
       return rateLimitResponse;
     }
@@ -153,7 +152,7 @@ export async function POST(request: NextRequest) {
     let chat: { id: string; userId: string };
     if (chatId) {
       const existing = await getChatById(chatId);
-      if (!existing || existing.userId !== session.user.id) {
+      if (!existing || existing.userId !== user.id) {
         return NextResponse.json(
           { error: "Chat not found or access denied" },
           { status: 404 },
@@ -162,7 +161,7 @@ export async function POST(request: NextRequest) {
       chat = existing;
     } else {
       chat = await createChat({
-        userId: session.user.id,
+        userId: user.id,
         title: message,
       });
     }

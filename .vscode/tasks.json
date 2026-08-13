@@ -20,6 +20,12 @@
 				"$tsc-watch"
 			],
 			"group": "build"
+		},
+		{
+			"label": "git-status",
+			"type": "shell",
+			"command": "git status --short",
+			"group": "build"
 		}
 	]
 }

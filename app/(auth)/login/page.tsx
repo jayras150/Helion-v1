@@ -1,16 +1,16 @@
 import { MessageSquare, Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
 import { AuthForm } from "@/components/auth-form";
-import { auth, oauthAvailable } from "../auth";
+import { getServerUser, oauthAvailable } from "@/lib/auth";
 
 interface LoginPageProps {
   searchParams: Promise<{ callbackUrl?: string }>;
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const session = await auth();
+  const user = await getServerUser();
 
-  if (session) {
+  if (user) {
     redirect("/");
   }
 

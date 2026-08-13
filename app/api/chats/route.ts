@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/(auth)/auth";
+import { getServerUser } from "@/lib/auth";
 import {
   getChatMessagesByChatId,
   getChatsByUserId,
@@ -7,13 +7,13 @@ import {
 
 export async function GET(_request: NextRequest) {
   try {
-    const session = await auth();
+    const user = await getServerUser();
 
-    if (!session?.user?.id) {
+    if (!user?.id) {
       return NextResponse.json({ data: [] });
     }
 
-    const chats = await getChatsByUserId(session.user.id);
+    const chats = await getChatsByUserId(user.id);
 
     const data = await Promise.all(
       chats.map(async (chat) => {

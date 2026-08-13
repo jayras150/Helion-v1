@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ShieldX } from "lucide-react";
 import { requireAdmin } from "@/lib/admin";
-import { auth } from "@/app/(auth)/auth";
+import { getServerUser } from "@/lib/auth";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Button } from "@/components/ui/button";
 
@@ -11,8 +11,8 @@ export const metadata = { title: "Admin · HELION" };
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   // Not signed in → login.
-  const session = await auth();
-  if (!session?.user?.id) {
+  const user = await getServerUser();
+  if (!user?.id) {
     redirect("/login");
   }
 
