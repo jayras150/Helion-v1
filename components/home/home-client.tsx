@@ -27,6 +27,7 @@ import { FilesSidebar } from "@/components/chat/files-sidebar";
 import { PreviewPanel } from "@/components/chat/preview-panel";
 import { AppHeader } from "@/components/shared/app-header";
 import { extractProjectFiles } from "@/lib/extract-files";
+import { mergeProjectContent } from "@/lib/merge-files";
 import { pollForCorrectedMessage } from "@/lib/poll-corrected-message";
 import { parseScopeTag, type Scope } from "@/lib/scope";
 
@@ -81,6 +82,19 @@ export function HomeClient() {
     for (let i = chatHistory.length - 1; i >= 0; i -= 1) {
       const msg = chatHistory[i];
       if (msg.type === "assistant" && !msg.isStreaming && msg.content) {
+        // Edit mode: merge the changed files from the latest reply on top of
+        // the previous project so the preview / Files stay complete.
+        for (let j = i - 1; j >= 0; j -= 1) {
+          const prev = chatHistory[j];
+          if (
+            prev.type === "assistant" &&
+            !prev.isStreaming &&
+            prev.content &&
+            extractProjectFiles(prev.content)
+          ) {
+            return mergeProjectContent(prev.content, msg.content);
+          }
+        }
         return msg.content;
       }
     }

@@ -181,8 +181,13 @@ export async function POST(request: NextRequest) {
     }));
 
     // System prompt is editable from /admin/settings (DB), plus the enabled
-    // AI skills (vendored SKILL.md) that match the user's message.
-    const system = await buildChatSystemPrompt(message);
+    // AI skills (vendored SKILL.md) that match the user's message. When the
+    // chat already contains a generated project, use the edit contract so the
+    // model only outputs the files it changed (saves tokens on edit requests).
+    const hasExistingProject = history.some(
+      (m) => m.role === "assistant" && extractProjectFiles(m.content),
+    );
+    const system = await buildChatSystemPrompt(message, { hasExistingProject });
 
     // Abort the generation after the timeout so a hung provider/model can't
     // leave the client loader spinning forever.

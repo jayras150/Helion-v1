@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { getServerUser } from "@/lib/auth";
 import { getChatById, getChatMessagesByChatId } from "@/lib/db/queries";
-import { extractProjectFiles } from "@/lib/extract-files";
+import { mergeFilesFromMessages } from "@/lib/merge-files";
 
 /**
  * GET /api/preview/[chatId]/data
@@ -28,20 +28,11 @@ export async function GET(
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  // Latest assistant message that contains project files.
+  // Merge project files across all assistant messages (newest overrides
+  // oldest) so an edit-only reply (changed files) still yields the full
+  // project for the standalone preview page.
   const messages = await getChatMessagesByChatId(chatId);
-  let files: Record<string, string> | null = null;
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const msg = messages[i];
-    if (msg.role !== "assistant" || !msg.content) {
-      continue;
-    }
-    const extracted = extractProjectFiles(msg.content);
-    if (extracted) {
-      files = extracted;
-      break;
-    }
-  }
+  const files = mergeFilesFromMessages(messages);
 
   if (!files) {
     return NextResponse.json({ error: "no_files" }, { status: 404 });

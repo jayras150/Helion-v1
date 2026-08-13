@@ -15,6 +15,7 @@ import { AppHeader } from "@/components/shared/app-header";
 import { useChat } from "@/hooks/use-chat";
 import { useEventListener } from "@/hooks/use-event-listner";
 import { extractProjectFiles } from "@/lib/extract-files";
+import { mergeProjectContent } from "@/lib/merge-files";
 import { parseScopeTag, type Scope } from "@/lib/scope";
 
 export function ChatDetailClient() {
@@ -47,6 +48,19 @@ export function ChatDetailClient() {
     for (let i = chatHistory.length - 1; i >= 0; i -= 1) {
       const msg = chatHistory[i];
       if (msg.type === "assistant" && !msg.isStreaming && msg.content) {
+        // Edit mode: merge the changed files from the latest reply on top of
+        // the previous project so the preview / Files stay complete.
+        for (let j = i - 1; j >= 0; j -= 1) {
+          const prev = chatHistory[j];
+          if (
+            prev.type === "assistant" &&
+            !prev.isStreaming &&
+            prev.content &&
+            extractProjectFiles(prev.content)
+          ) {
+            return mergeProjectContent(prev.content, msg.content);
+          }
+        }
         return msg.content;
       }
     }

@@ -201,12 +201,31 @@ const OUTPUT_CONTRACT = `## OUTPUT CONTRACT (MANDATORY)
   <!-- scope:frontend --> / <!-- scope:backend --> / <!-- scope:fullstack --> / <!-- scope:text -->`;
 
 /**
+ * Used instead of OUTPUT_CONTRACT when the conversation already contains a
+ * full project and the user is asking to MODIFY it. Tells the model to output
+ * ONLY the changed files so edits don't re-generate the whole project (which
+ * wastes a lot of tokens).
+ */
+const EDIT_CONTRACT = `## OUTPUT CONTRACT (EDIT MODE — MANDATORY)
+The conversation already contains a complete working project (previous replies have all the source files). The user is asking you to MODIFY that existing project.
+- Output ONLY the files that CHANGED. Each changed file goes in its own fenced block, with its FULL content.
+- Do NOT re-output files you did not change — repeating the whole project wastes tokens.
+- If you only changed a few lines, still output the ENTIRE file content of each changed file (models cannot reliably emit partial-line patches).
+- Do not remove, rewrite, or re-emit any file that stayed the same.
+- NEVER reply with only a plan, outline, or a diff — output the complete file content of the changed files.
+- Start with the scope tag on the very first line:
+  <!-- scope:frontend --> / <!-- scope:backend --> / <!-- scope:fullstack --> / <!-- scope:text -->`;
+
+/**
  * Builds the full system prompt for a chat request:
  * base prompt (DB-editable) + enabled skill catalog + full SKILL.md of the
- * skills that match the user's message + the mandatory output contract.
+ * skills that match the user's message + a mandatory output contract
+ * (full-project contract for new builds, edit contract when the conversation
+ * already contains a project so the model only outputs changed files).
  */
 export async function buildChatSystemPrompt(
   userMessage: string,
+  options: { hasExistingProject?: boolean } = {},
 ): Promise<string> {
   const [base, enabledList] = await Promise.all([
     getSystemPrompt(),
@@ -234,7 +253,7 @@ export async function buildChatSystemPrompt(
         body,
     );
   }
-  parts.push(OUTPUT_CONTRACT);
+  parts.push(options.hasExistingProject ? EDIT_CONTRACT : OUTPUT_CONTRACT);
 
   return parts.join("\n\n");
 }

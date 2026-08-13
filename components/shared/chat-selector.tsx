@@ -277,9 +277,9 @@ export function ChatSelector() {
 
   return (
     <>
-      <div className="flex items-center gap-1">
+      <div className="flex min-w-0 items-center gap-1">
         <Select value={currentChatId || ""} onValueChange={handleValueChange}>
-          <SelectTrigger className="w-fit min-w-0 max-w-36 sm:min-w-37.5 sm:max-w-62.5" size="sm">
+          <SelectTrigger className="min-w-0 flex-1 sm:w-fit sm:flex-none sm:min-w-37.5 sm:max-w-62.5" size="sm">
             <SelectValue placeholder="Select chat">
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />

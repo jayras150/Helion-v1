@@ -91,7 +91,7 @@ export function AppHeader({
             >
               HELION
             </Link>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1 sm:flex-none">
               <ChatSelector />
             </div>
           </div>
