@@ -2,7 +2,7 @@ import "server-only";
 
 import { existsSync, readFileSync, readdirSync } from "fs";
 import path from "path";
-import { getSetting, upsertSetting } from "@/lib/db/queries";
+import { upsertSetting } from "@/lib/db/queries";
 import { getSystemPrompt } from "@/lib/system-prompt";
 
 /**
@@ -25,13 +25,13 @@ import { getSystemPrompt } from "@/lib/system-prompt";
 const SKILLS_DIR = path.join(process.cwd(), "content", "skills");
 const ENABLED_KEY = "skills_enabled";
 
-/** Curated default set focused on web/full-stack app development. */
-export const DEFAULT_ENABLED_SKILLS = ["react-expert"];
+/** Skills are disabled to keep every generation prompt small and predictable. */
+export const DEFAULT_ENABLED_SKILLS: string[] = [];
 
 const MAX_MATCHED_SKILLS = 3;
 const MAX_SKILL_CHARS = 3_000;
 /** Hard cap on the TOTAL skill content injected per request (prompt budget). */
-const MAX_SKILL_TOTAL_CHARS = 6_000;
+const MAX_SKILL_TOTAL_CHARS = 3_000;
 
 export type SkillMeta = {
   name: string;
@@ -89,20 +89,10 @@ export function listSkills(): SkillMeta[] {
   return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Reads the enabled skill list from the DB (falls back to defaults). */
+/** Returns no skills; legacy DB skill settings are intentionally ignored. */
 export async function getEnabledSkills(): Promise<string[]> {
-  try {
-    const raw = await getSetting(ENABLED_KEY);
-    if (raw) {
-      const arr = JSON.parse(raw) as unknown;
-      if (Array.isArray(arr)) {
-        return arr.filter((n): n is string => typeof n === "string");
-      }
-    }
-  } catch {
-    // DB unavailable → defaults
-  }
-  return [...DEFAULT_ENABLED_SKILLS];
+  // Do not inject any vendored SKILL.md content, including stale DB settings.
+  return [];
 }
 
 /** Enables/disables a skill and persists the list to the DB. */
@@ -110,15 +100,9 @@ export async function setSkillEnabled(
   name: string,
   enabled: boolean,
 ): Promise<string[]> {
-  const set = new Set(await getEnabledSkills());
-  if (enabled) {
-    set.add(name);
-  } else {
-    set.delete(name);
-  }
-  const next = [...set];
-  await upsertSetting(ENABLED_KEY, JSON.stringify(next));
-  return next;
+  // Keep the feature disabled even if an old admin page sends an enable request.
+  await upsertSetting(ENABLED_KEY, JSON.stringify([]));
+  return [];
 }
 
 function tokenize(text: string): Set<string> {
@@ -227,33 +211,9 @@ export async function buildChatSystemPrompt(
   userMessage: string,
   options: { hasExistingProject?: boolean } = {},
 ): Promise<string> {
-  const [base, enabledList] = await Promise.all([
-    getSystemPrompt(),
-    getEnabledSkills(),
-  ]);
-  const all = listSkills();
-  const enabled = new Set(enabledList);
-  const matched = matchSkills(userMessage, enabled, all);
-
-  const parts: string[] = [base, buildCatalog(all, enabled)];
-  let budget = MAX_SKILL_TOTAL_CHARS;
-  for (const skill of matched) {
-    if (budget <= 0) {
-      break;
-    }
-    const content = getSkillContent(skill.name);
-    if (!content) {
-      continue;
-    }
-    const body = content.slice(0, Math.min(MAX_SKILL_CHARS, budget));
-    budget -= body.length;
-    parts.push(
-      `## SKILL: ${skill.name}\n` +
-        "Follow this skill's instructions when they apply to the user's request.\n" +
-        body,
-    );
-  }
-  parts.push(options.hasExistingProject ? EDIT_CONTRACT : OUTPUT_CONTRACT);
-
-  return parts.join("\n\n");
+  const base = await getSystemPrompt();
+  return [
+    base,
+    options.hasExistingProject ? EDIT_CONTRACT : OUTPUT_CONTRACT,
+  ].join("\n\n");
 }

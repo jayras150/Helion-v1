@@ -10,6 +10,7 @@
  *
  *   - react / react-dom      → React 18 UMD builds
  *   - lucide-react           → UMD build (global `LucideReact`)
+ *   - recharts                → lightweight local chart shim
  *   - tailwind               → Tailwind Play CDN script (runtime compiler)
  *   - esbuild                → esbuild.wasm
  *
@@ -97,9 +98,39 @@ const SHIM_MODULES: Record<string, string> = {
     });
     module.exports = __shim;
   `,
+  // Recharts is not vendored into the iframe. Keep its commonly generated
+  // chart components available as a small, dependency-free SVG/HTML shim so
+  // imports compile and dashboard previews remain usable offline.
+  recharts: `
+    var R = window.React;
+    var el = R.createElement;
+    var passthrough = function (props) {
+      return el("div", { style: Object.assign({ width: "100%", height: "100%", minHeight: 120 }, (props && props.style) || {}) }, props && props.children);
+    };
+    var svg = function (props) {
+      return el("svg", { width: "100%", height: "100%", viewBox: "0 0 400 220", role: "img", "aria-label": (props && props["aria-label"]) || "Chart" }, props && props.children);
+    };
+    var shape = function (props) {
+      var fill = (props && (props.fill || props.color)) || "#6366f1";
+      return el("rect", { x: 16, y: 16, width: 368, height: 188, rx: 8, fill: fill, opacity: 0.18 });
+    };
+    var Chart = function (props) { return svg(props); };
+    var ResponsiveContainer = function (props) { return passthrough(props); };
+    var PieChart = Chart, BarChart = Chart, LineChart = Chart, AreaChart = Chart;
+    var ComposedChart = Chart, RadarChart = Chart, ScatterChart = Chart;
+    var Pie = shape, Bar = shape, Line = shape, Area = shape, Radar = shape, Scatter = shape;
+    var Cell = function () { return null; };
+    var Legend = function () { return el("div", { style: { padding: 8, fontSize: 12, color: "#64748b" } }, "Chart legend"); };
+    var Tooltip = function () { return null; };
+    var axis = function () { return null; };
+    var XAxis = axis, YAxis = axis, ZAxis = axis, CartesianGrid = axis;
+    var PolarGrid = axis, PolarAngleAxis = axis, PolarRadiusAxis = axis;
+    var ReferenceLine = axis, ReferenceArea = axis, LabelList = axis;
+    export { ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip, BarChart, Bar, LineChart, Line, AreaChart, Area, ComposedChart, RadarChart, Radar, ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ReferenceLine, ReferenceArea, LabelList };
+  `,
 };
 
-const BARE_SPECIFIER = /^(react|react-dom|react-dom\/client|lucide-react)$/;
+const BARE_SPECIFIER = /^(react|react-dom|react-dom\/client|lucide-react|recharts)$/;
 
 /**
  * Boilerplate entry that mounts the generated `App` inside an error boundary.

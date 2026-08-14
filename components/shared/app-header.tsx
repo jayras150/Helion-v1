@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useSession } from "@/hooks/use-user";
-import { FolderTree, Monitor } from "lucide-react";
+import { ArrowUpRight, FolderTree, Monitor, Sparkles } from "lucide-react";
 import { Suspense, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -73,7 +73,7 @@ export function AppHeader({
   return (
     <div
       className={cn(
-        "border-border bg-gray-50 border-b dark:border-input dark:bg-card",
+        "sticky top-0 z-40 relative border-white/50 bg-white/55 border-b shadow-[0_12px_40px_-24px_rgba(8,145,178,0.85)] backdrop-blur-2xl dark:border-white/10 dark:bg-black/35",
         className,
       )}
     >
@@ -81,27 +81,32 @@ export function AppHeader({
         <SearchParamsHandler />
       </Suspense>
 
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-80" />
       <div className="px-3 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-1.5 py-2 sm:h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-0">
-          <div className="flex min-w-0 items-center gap-1.5 sm:gap-4">
+        <div className="flex flex-col gap-2 py-2 sm:h-[4.5rem] sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-0">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-5">
             <Link
               href="/"
               onClick={handleLogoClick}
-              className="shrink-0 bg-gradient-to-r from-cyan-500 to-sky-600 bg-clip-text font-bold text-lg tracking-tight text-transparent dark:from-cyan-400 dark:to-sky-500"
+              className="group flex shrink-0 items-center gap-2 rounded-xl px-1 py-1 font-bold text-lg tracking-tight"
             >
-              HELION
+              <span className="ui-pulse-ring flex size-8 items-center justify-center rounded-[10px] bg-gradient-to-br from-cyan-400 to-blue-600 text-white shadow-lg shadow-cyan-500/20 transition-transform group-hover:rotate-6">
+                <Sparkles className="size-4" />
+              </span>
+              <span className="bg-gradient-to-r from-cyan-500 to-sky-600 bg-clip-text text-transparent dark:from-cyan-400 dark:to-sky-500">HELION</span>
             </Link>
+            <div className="hidden h-7 w-px bg-border sm:block" />
             <div className="min-w-0 flex-1 sm:flex-none">
               <ChatSelector />
             </div>
           </div>
 
-          <div className="ml-auto flex items-center gap-1 sm:ml-0 sm:gap-4">
+          <div className="ml-auto flex items-center gap-1.5 sm:ml-0 sm:gap-2">
             <ThemeToggle />
             {onPreview ? (
               <Button
                 variant="outline"
-                className="h-8 w-8 shrink-0 gap-1.5 p-0 text-sm sm:h-fit sm:w-auto sm:px-3 sm:py-1.5"
+                className="h-9 w-9 shrink-0 gap-1.5 rounded-xl border-border/70 bg-background/50 p-0 text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:border-cyan-400 hover:shadow-cyan-500/20 sm:h-9 sm:w-auto sm:px-3"
                 onClick={onPreview}
                 disabled={previewDisabled}
                 title={previewActive ? "Previewing" : "Preview"}
@@ -115,7 +120,7 @@ export function AppHeader({
             {onOpenFiles ? (
               <Button
                 variant="outline"
-                className="h-8 w-8 shrink-0 gap-1.5 p-0 text-sm sm:h-fit sm:w-auto sm:px-3 sm:py-1.5"
+                className="h-9 w-9 shrink-0 gap-1.5 rounded-xl border-border/70 bg-background/50 p-0 text-sm shadow-sm transition-all hover:-translate-y-0.5 hover:border-cyan-400 hover:shadow-cyan-500/20 sm:h-9 sm:w-auto sm:px-3"
                 onClick={onOpenFiles}
                 disabled={filesDisabled}
                 title="Files"
@@ -124,6 +129,11 @@ export function AppHeader({
                 <span className="hidden sm:inline">Files</span>
               </Button>
             ) : null}
+            <Button asChild variant="ghost" className="hidden h-9 rounded-xl px-2 text-xs text-muted-foreground hover:text-foreground sm:inline-flex">
+              <Link href="/projects">
+                Projects <ArrowUpRight className="ml-1 size-3.5" />
+              </Link>
+            </Button>
             <UserNav session={session} />
           </div>
         </div>

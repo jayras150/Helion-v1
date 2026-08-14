@@ -6,15 +6,24 @@ import {
   Eye,
   EyeOff,
   Lock,
+  Loader2,
   MessageSquare,
   MoreHorizontal,
   Trash2,
   Users,
+  X,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "@/hooks/use-user";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -23,13 +32,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -110,6 +112,7 @@ export function ChatSelector() {
   const [isDeletingChat, setIsDeletingChat] = useState(false);
   const [isDuplicatingChat, setIsDuplicatingChat] = useState(false);
   const [isChangingVisibility, setIsChangingVisibility] = useState(false);
+  const [deletingChatId, setDeletingChatId] = useState<string | null>(null);
 
   // Get current chat ID if on a chat page
   const currentChatId = pathname?.startsWith("/chats/")
@@ -202,6 +205,34 @@ export function ChatSelector() {
     }
   }, [currentChatId, router]);
 
+  const handleDeleteChatFromList = useCallback(
+    async (chat: Chat) => {
+      if (deletingChatId) return;
+      const confirmed = window.confirm(
+        `Delete "${getChatDisplayName(chat)}"? This will permanently remove the chat and all its messages.`,
+      );
+      if (!confirmed) return;
+
+      setDeletingChatId(chat.id);
+      try {
+        const response = await fetch(`/api/chats/${chat.id}`, {
+          method: "DELETE",
+        });
+        if (!response.ok) throw new Error("Failed to delete chat");
+
+        setChats((previous) => previous.filter((item) => item.id !== chat.id));
+        if (chat.id === currentChatId) {
+          router.push("/");
+        }
+      } catch (error) {
+        console.error("Error deleting chat from selector:", error);
+      } finally {
+        setDeletingChatId(null);
+      }
+    },
+    [currentChatId, deletingChatId, router],
+  );
+
   const handleDuplicateChat = useCallback(async () => {
     if (!currentChatId) {
       return;
@@ -264,7 +295,7 @@ export function ChatSelector() {
     isRenamingChat ||
     isDeletingChat ||
     isDuplicatingChat ||
-    isChangingVisibility;
+    isChangingVisibility || deletingChatId !== null;
 
   // Don't show if user is not authenticated
   if (!session?.user?.id) {
@@ -279,90 +310,33 @@ export function ChatSelector() {
     <>
       <div className="flex min-w-0 items-center gap-1">
         <Select value={currentChatId || ""} onValueChange={handleValueChange}>
-          <SelectTrigger className="min-w-0 flex-1 sm:w-fit sm:flex-none sm:min-w-37.5 sm:max-w-62.5" size="sm">
+          <SelectTrigger className="h-9 min-w-0 max-w-[calc(100vw-7.5rem)] flex-1 overflow-hidden rounded-xl border-border/70 bg-background/55 px-3 shadow-sm backdrop-blur transition-all hover:border-cyan-400/60 sm:w-fit sm:flex-none sm:min-w-45 sm:max-w-72" size="sm">
             <SelectValue placeholder="Select chat">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                <span className="truncate">
-                  {currentChat
-                    ? getChatDisplayName(currentChat)
-                    : "Select chat"}
-                </span>
+              <div className="flex min-w-0 max-w-full items-center gap-2">
+                <span className="flex size-5 items-center justify-center rounded-md bg-cyan-500/10 text-cyan-600 dark:text-cyan-300"><MessageSquare className="size-3.5" /></span>
+                <span className="min-w-0 truncate">{currentChat ? getChatDisplayName(currentChat) : "Select chat"}</span>
               </div>
             </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {chats.length > 0 ? (
-              chats.slice(0, 15).map((chat) => (
-                <SelectItem key={chat.id} value={chat.id}>
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4" />
-                    <span className="truncate">{getChatDisplayName(chat)}</span>
-                  </div>
-                </SelectItem>
-              ))
-            ) : (
-              <div className="px-2 py-1.5 text-muted-foreground text-sm">
-                No chats yet
-              </div>
-            )}
+            {chats.length > 0 ? chats.slice(0, 15).map((chat) => (
+              <SelectItem key={chat.id} value={chat.id} className="pr-16">
+                <div className="flex min-w-0 max-w-[min(22rem,calc(100vw-3rem))] items-center gap-2"><MessageSquare className="size-4" /><span className="min-w-0 truncate">{getChatDisplayName(chat)}</span></div>
+                <button type="button" data-chat-delete className="absolute right-7 flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete ${getChatDisplayName(chat)}`} disabled={deletingChatId !== null} onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); }} onClick={(event) => { event.preventDefault(); event.stopPropagation(); void handleDeleteChatFromList(chat); }}>{deletingChatId === chat.id ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}</button>
+              </SelectItem>
+            )) : <div className="px-2 py-1.5 text-muted-foreground text-sm">No chats yet</div>}
           </SelectContent>
         </Select>
-
-        {/* Chat Context Menu */}
-        {currentChat && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                disabled={isAnyActionPending}
-              >
-                <MoreHorizontal className="h-4 w-4" />
-                <span className="sr-only">Chat options</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => setIsDuplicateDialogOpen(true)}
-                disabled={isAnyActionPending}
-              >
-                <Copy className="mr-2 h-4 w-4" />
-                Duplicate Chat
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setSelectedVisibility(currentChat.privacy || "private");
-                  setIsVisibilityDialogOpen(true);
-                }}
-                disabled={isAnyActionPending}
-              >
-                {getPrivacyIcon(currentChat.privacy || "private")}
-                <span className="ml-2">Change Visibility</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  setRenameChatName(currentChat.name || "");
-                  setIsRenameDialogOpen(true);
-                }}
-                disabled={isAnyActionPending}
-              >
-                <Edit2 className="mr-2 h-4 w-4" />
-                Rename Chat
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => setIsDeleteDialogOpen(true)}
-                disabled={isAnyActionPending}
-                className="text-destructive focus:text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete Chat
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        {currentChat && <DropdownMenu>
+          <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="h-9 w-9 rounded-xl border border-border/60 bg-background/45 p-0 shadow-sm" disabled={isAnyActionPending}><MoreHorizontal className="size-4" /><span className="sr-only">Chat options</span></Button></DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setIsDuplicateDialogOpen(true)} disabled={isAnyActionPending}><Copy className="mr-2 size-4" />Duplicate Chat</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setSelectedVisibility(currentChat.privacy || "private"); setIsVisibilityDialogOpen(true); }} disabled={isAnyActionPending}>{getPrivacyIcon(currentChat.privacy || "private")}<span className="ml-2">Change Visibility</span></DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setRenameChatName(currentChat.name || ""); setIsRenameDialogOpen(true); }} disabled={isAnyActionPending}><Edit2 className="mr-2 size-4" />Rename Chat</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setIsDeleteDialogOpen(true)} disabled={isAnyActionPending} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 size-4" />Delete Chat</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>}
       </div>
 
       {/* Rename Chat Dialog */}

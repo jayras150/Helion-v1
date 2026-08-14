@@ -43,15 +43,10 @@ export async function ensureCodeOutput(
   }
   const files = extractProjectFiles(text);
   const count = files ? Object.keys(files).length : 0;
-  // In edit mode a 1-file reply is a VALID edit (the model only outputs the
-  // files it changed) — never "correct" it into a full regeneration. Only
-  // empty replies (0 files) count as plan-only.
-  const minNeeded = hasExistingProject
-    ? 1
-    : scope === "backend"
-      ? 1
-      : MIN_CODE_FILES;
-  if (count >= minNeeded) {
+  // Only auto-correct when the model produced NO files at all (true
+  // plan-only / empty reply). If at least one file was emitted, treat it
+  // as a valid reply (edit-mode allows single-file edits).
+  if (count > 0) {
     return text;
   }
 

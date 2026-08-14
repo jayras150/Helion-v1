@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import useSWR, { mutate } from "swr";
 import { CheckCircle2, KeyRound, Loader2, Lock, RefreshCw, RotateCcw, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +60,50 @@ export function CredentialsEditor() {
     setValue(c.secret ? "" : (c.value ?? ""));
     setNotice(null);
   };
+
+  // Models list for AI_MODEL selection
+  const [models, setModels] = useState<Array<{ id: string; description: string }>>([]);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [showList, setShowList] = useState(false);
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const [filteredModels, setFilteredModels] = useState<Array<{ id: string; description: string }>>([]);
+
+  useEffect(() => {
+    setFilteredModels(
+      value && value.trim()
+        ? models.filter((m) => m.id.includes(value) || (m.description || "").toLowerCase().includes(value.toLowerCase()))
+        : models,
+    );
+  }, [value, models]);
+
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      const target = e.target as Node | null;
+      if (!listRef.current) return;
+      if (listRef.current.contains(target)) return;
+      // click outside
+      setShowList(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  async function fetchModels() {
+    setLoadingModels(true);
+    try {
+      const res = await fetch("/api/admin/models");
+      if (!res.ok) {
+        setModels([]);
+      } else {
+        const body = await res.json();
+        setModels(body.models ?? []);
+      }
+    } catch {
+      setModels([]);
+    } finally {
+      setLoadingModels(false);
+    }
+  }
 
   const save = async (clear: boolean) => {
     if (!editing) return;
@@ -215,7 +259,7 @@ export function CredentialsEditor() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2">
+            <div className="space-y-2">
             <label htmlFor="cred-value" className="text-sm font-medium">
               {editing?.set
                 ? editing.secret
@@ -229,17 +273,70 @@ export function CredentialsEditor() {
                 <code className="font-mono text-[11px]">{editing.value}</code>
               </p>
             ) : null}
-            <Input
-              id="cred-value"
-              type={editing?.secret ? "password" : "text"}
-              autoComplete="new-password"
-              placeholder={editing?.secret ? "••••••••" : "Enter new value"}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && value && !saving) void save(false);
-              }}
-            />
+            {editing?.key === "AI_MODEL" ? (
+              <div>
+                <div className="mb-2 text-xs text-muted-foreground">Select a model from the provider</div>
+                <div className="relative">
+                  <div className="flex items-center gap-2">
+                    <input
+                      className="flex-1 rounded border px-2 py-1"
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      onFocus={() => {
+                        if (models.length === 0 && !loadingModels) void fetchModels();
+                        setShowList(true);
+                      }}
+                      placeholder="Search or type model id"
+                      aria-haspopup="listbox"
+                    />
+                    <Button size="sm" variant="outline" onClick={() => void fetchModels()}>
+                      {loadingModels ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}
+                    </Button>
+                  </div>
+                  <div className="absolute left-0 right-0 z-50 mt-1">
+                    {showList && (
+                      <ul
+                        role="listbox"
+                        className="max-h-48 overflow-auto rounded border bg-background p-1 shadow-md"
+                        ref={listRef}
+                      >
+                        <li
+                          key="none"
+                          role="option"
+                          className="cursor-pointer rounded px-2 py-1 text-sm hover:bg-muted-foreground/10"
+                          onMouseDown={(e) => { e.preventDefault(); setValue(""); setShowList(false); }}
+                        >
+                          (none)
+                        </li>
+                        {filteredModels.map((m) => (
+                          <li
+                            key={m.id}
+                            role="option"
+                            className="cursor-pointer rounded px-2 py-1 text-sm hover:bg-muted-foreground/10"
+                            onMouseDown={(e) => { e.preventDefault(); setValue(m.id); setShowList(false); }}
+                          >
+                            <div className="font-mono text-[11px]">{m.id}</div>
+                            {m.description ? <div className="text-xs text-muted-foreground">{m.description}</div> : null}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Input
+                id="cred-value"
+                type={editing?.secret ? "password" : "text"}
+                autoComplete="new-password"
+                placeholder={editing?.secret ? "••••••••" : "Enter new value"}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && value && !saving) void save(false);
+                }}
+              />
+            )}
             {notice ? (
               <p className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
                 <CheckCircle2 className="size-3.5" />

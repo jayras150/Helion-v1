@@ -33,8 +33,8 @@ export type CredentialDef = {
 
 export const CREDENTIAL_DEFS: CredentialDef[] = [
   // AI provider
-  { key: "AI_API_KEY", label: "AI API Key", description: "AI provider API key (DeepSeek/OpenAI/etc.)", secret: true, requiresRestart: true, group: "ai" },
-  { key: "AI_BASE_URL", label: "AI Base URL", description: "OpenAI-compatible endpoint, e.g. https://api.deepseek.com/v1", secret: false, requiresRestart: true, group: "ai" },
+  { key: "AI_API_KEY", label: "AI API Key", description: "AI provider API key (DeepSeek/OpenAI/etc.)", secret: true, requiresRestart: false, group: "ai" },
+  { key: "AI_BASE_URL", label: "AI Base URL", description: "OpenAI-compatible endpoint, e.g. https://api.deepseek.com/v1", secret: false, requiresRestart: false, group: "ai" },
   { key: "AI_MODEL", label: "AI Model", description: "Default model, e.g. deepseek-v4-flash", secret: false, requiresRestart: false, group: "ai" },
   // Backend sandbox
   { key: "E2B_API_KEY", label: "E2B API Key", description: "Runs project backends in E2B sandboxes", secret: true, requiresRestart: false, group: "backend" },
@@ -145,4 +145,51 @@ export function setCredentialValue(key: string, value: string): void {
   } else {
     delete process.env[key];
   }
+}
+
+/**
+ * Rewrites the env file grouping keys by `CREDENTIAL_DEFS` groups and
+ * preserving current values. Unknown keys are appended at the end.
+ * This makes the .env file tidy and easy to review.
+ */
+export function normalizeEnvFile(): void {
+  const path = getEnvFilePath();
+  const content = existsSync(path) ? readFileSync(path, "utf8") : "";
+  const parsed = parseEnv(content);
+
+  const groups: Record<string, CredentialDef[]> = {};
+  for (const d of CREDENTIAL_DEFS) {
+    groups[d.group] = groups[d.group] ?? [];
+    groups[d.group].push(d);
+  }
+
+  const lines: string[] = [];
+  for (const grp of Object.keys(groups)) {
+    const label = grp;
+    lines.push(`# ${label.toUpperCase()}`);
+    for (const def of groups[grp]) {
+      const val = parsed[def.key] ?? process.env[def.key] ?? "";
+      if (val) {
+        lines.push(`${def.key}=${escapeEnvValue(val)}`);
+      } else {
+        lines.push(`# ${def.key}=`);
+      }
+    }
+    lines.push("");
+  }
+
+  // Append any keys in the file that aren't defined in CREDENTIAL_DEFS
+  const known = new Set(CREDENTIAL_DEFS.map((d) => d.key));
+  const extras = Object.keys(parsed).filter((k) => !known.has(k));
+  if (extras.length > 0) {
+    lines.push("# EXTRA CONFIGURATION (preserved)");
+    for (const k of extras) {
+      const v = parsed[k];
+      if (v) lines.push(`${k}=${escapeEnvValue(v)}`);
+      else lines.push(`# ${k}=`);
+    }
+    lines.push("");
+  }
+
+  writeFileSync(path, lines.join("\n").replace(/\n+$/, "") + "\n", "utf8");
 }

@@ -41,6 +41,8 @@ export function ChatDetailClient() {
     isLoadingChat,
     handleSendMessage,
     handleStreamingComplete,
+    editUserMessage,
+    deleteMessage,
   } = useChat(chatId);
 
   // Latest finished assistant message → source code for the live preview.
@@ -186,6 +188,8 @@ export function ChatDetailClient() {
           isLoading={isLoading}
           onStreamingComplete={handleStreamingDone}
           onStreamingStarted={() => setIsLoading(false)}
+          onEditMessage={(index) => void editUserMessage(index)}
+          onDeleteMessage={(index) => void deleteMessage(index)}
         />
 
         {backendPanel ? (

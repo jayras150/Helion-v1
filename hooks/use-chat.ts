@@ -120,6 +120,7 @@ export function useChat(chatId: string) {
         ) {
           setChatHistory(
             chat.messages.map((msg) => ({
+              id: msg.id,
               type: msg.role,
               content: msg.content,
             })),
@@ -313,6 +314,35 @@ export function useChat(chatId: string) {
     [chatId, chatHistory],
   );
 
+  const editUserMessage = useCallback(
+    async (index: number) => {
+      const target = chatHistory[index];
+      if (!target || target.type !== "user") return;
+      setMessage(target.content);
+      setChatHistory((prev) => prev.slice(0, index));
+      if (target.id) {
+        await fetch(`/api/chats/${chatId}/messages/${target.id}`, {
+          method: "DELETE",
+        }).catch(() => {});
+      }
+    },
+    [chatHistory, chatId],
+  );
+
+  const deleteMessage = useCallback(
+    async (index: number) => {
+      const target = chatHistory[index];
+      if (!target) return;
+      setChatHistory((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+      if (target.id) {
+        await fetch(`/api/chats/${chatId}/messages/${target.id}`, {
+          method: "DELETE",
+        }).catch(() => {});
+      }
+    },
+    [chatHistory, chatId],
+  );
+
   return {
     message,
     setMessage,
@@ -324,5 +354,7 @@ export function useChat(chatId: string) {
     isLoadingChat,
     handleSendMessage,
     handleStreamingComplete,
+    editUserMessage,
+    deleteMessage,
   };
 }

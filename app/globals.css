@@ -1,4 +1,62 @@
 @import "tailwindcss";
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-180%);
+  }
+  100% {
+    transform: translateX(360%);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -10px, 0); }
+}
+
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgb(34 211 238 / 0.28); }
+  70% { box-shadow: 0 0 0 18px rgb(34 211 238 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(34 211 238 / 0); }
+}
+
+.ui-reveal { animation: reveal-up 500ms cubic-bezier(.22, 1, .36, 1) both; }
+.ui-float { animation: float 6s ease-in-out infinite; }
+.ui-pulse-ring { animation: pulse-ring 2.4s ease-out infinite; }
+
+/* Shared HELION glass language for cards, panels, and floating controls. */
+.glass-panel {
+  border: 1px solid rgb(255 255 255 / 0.5);
+  background: rgb(255 255 255 / 0.48);
+  box-shadow: 0 18px 60px -30px rgb(8 145 178 / 0.45);
+  backdrop-filter: blur(22px) saturate(145%);
+}
+
+.dark .glass-panel {
+  border-color: rgb(255 255 255 / 0.1);
+  background: rgb(255 255 255 / 0.06);
+}
+
+.glass-panel::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgb(255 255 255 / 0.18), transparent 35%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));

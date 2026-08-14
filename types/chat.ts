@@ -17,6 +17,7 @@ export interface ChatMessageData {
 export interface ChatMessage {
   type: "user" | "assistant";
   content: string;
+  id?: string;
   isStreaming?: boolean;
   stream?: ReadableStream<Uint8Array> | null;
 }

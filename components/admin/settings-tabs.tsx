@@ -32,7 +32,7 @@ export function SettingsTabs({
 }: {
   sections: Record<SettingsTabKey, ReactNode>;
 }) {
-  const [active, setActive] = useState<SettingsTabKey>("prompt");
+  const [active, setActive] = useState<SettingsTabKey>("credentials");
 
   return (
     <div className="space-y-5">

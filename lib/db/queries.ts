@@ -395,6 +395,20 @@ export async function updateChatMessageContent(
   }
 }
 
+/** Deletes one message after verifying that it belongs to the requested chat. */
+export async function deleteChatMessage({
+  messageId,
+  chatId,
+}: {
+  messageId: string;
+  chatId: string;
+}): Promise<void> {
+  if (!UUID_RE.test(messageId) || !UUID_RE.test(chatId)) return;
+  await getDb()
+    .delete(chat_messages)
+    .where(and(eq(chat_messages.id, messageId), eq(chat_messages.chatId, chatId)));
+}
+
 /** Updates the E2B deployment fields on a single message. */
 export async function updateChatMessageDeployment({
   messageId,

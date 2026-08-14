@@ -170,7 +170,7 @@ export const PromptInput = ({
   return (
     <form
       className={cn(
-        "w-full divide-y overflow-hidden rounded-xl border bg-background shadow-sm transition-colors",
+        "w-full divide-y overflow-hidden rounded-2xl border border-white/50 bg-white/55 shadow-[0_18px_60px_-28px_rgba(8,145,178,0.65)] backdrop-blur-xl transition-all duration-300 focus-within:border-cyan-400/60 focus-within:shadow-[0_20px_70px_-26px_rgba(8,145,178,0.85)] dark:border-white/10 dark:bg-white/[0.06]",
         isDragOver && "border-primary bg-primary/5",
         className,
       )}

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useSession } from "@/hooks/use-user";
-import { Sparkles } from "lucide-react";
+import { Check, Copy, Edit3, Sparkles, Trash2 } from "lucide-react";
 import {
   Conversation,
   ConversationContent,
@@ -19,6 +19,7 @@ import { parseScopeTag, SCOPE_LABELS, type Scope } from "@/lib/scope";
 import { cn } from "@/lib/utils";
 
 interface ChatMessage {
+  id?: string;
   type: "user" | "assistant";
   content: string;
   isStreaming?: boolean;
@@ -30,6 +31,8 @@ interface ChatMessagesProps {
   isLoading: boolean;
   onStreamingComplete: (finalContent: string) => void;
   onStreamingStarted?: () => void;
+  onEditMessage?: (index: number) => void;
+  onDeleteMessage?: (index: number) => void;
 }
 
 /** Brand avatar for the HELION agent. */
@@ -37,6 +40,33 @@ function AgentAvatar() {
   return (
     <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-sky-600 text-white shadow-sm ring-1 ring-border">
       <Sparkles className="size-4" />
+    </div>
+  );
+}
+
+/** A branded, layered loader for the slower background generation path. */
+function GenerationSpinner({ compact = false }: { compact?: boolean }) {
+  return (
+    <div
+      className={cn(
+        "relative flex shrink-0 items-center justify-center rounded-full",
+        compact ? "size-10" : "size-14",
+      )}
+      role="status"
+      aria-label="Generating your app"
+    >
+      <div className="absolute inset-0 rounded-full bg-cyan-400/15 blur-lg" />
+      <div className="absolute inset-0 animate-[spin_1.1s_linear_infinite] rounded-full bg-[conic-gradient(from_0deg,transparent_10deg,transparent_90deg,#22d3ee_180deg,#3b82f6_260deg,transparent_340deg)] p-[2px]">
+        <div className="h-full w-full rounded-full bg-background/90" />
+      </div>
+      <div
+        className={cn(
+          "relative flex items-center justify-center rounded-full bg-gradient-to-br from-cyan-400 to-blue-600 text-white shadow-[0_0_20px_rgba(34,211,238,0.35)]",
+          compact ? "size-5" : "size-7",
+        )}
+      >
+        <Sparkles className={cn("animate-pulse", compact ? "size-3" : "size-4")} />
+      </div>
     </div>
   );
 }
@@ -87,6 +117,8 @@ export function ChatMessages({
   isLoading,
   onStreamingComplete,
   onStreamingStarted,
+  onEditMessage,
+  onDeleteMessage,
 }: ChatMessagesProps) {
   const streamingStartedRef = useRef(false);
   const { data: session } = useSession();
@@ -143,7 +175,7 @@ export function ChatMessages({
               )
             }
           >
-            <MessageContent from={msg.type}>
+            <MessageContent from={msg.type} className={msg.type === "user" ? "bg-gradient-to-br from-cyan-500 via-sky-500 to-blue-600 shadow-[0_8px_25px_-12px_rgba(14,165,233,0.9)]" : undefined}>
               {msg.isStreaming && msg.stream ? (
                 <StreamingText
                   stream={msg.stream}
@@ -164,13 +196,66 @@ export function ChatMessages({
                 />
               )}
             </MessageContent>
+            {msg.type === "user" && !msg.isStreaming ? (
+              <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/80 px-2 py-1 text-[11px] text-muted-foreground shadow-sm transition hover:border-cyan-400 hover:text-cyan-600"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(msg.content);
+                  }}
+                  title="Copy message"
+                >
+                  <Copy className="size-3" /> Copy
+                </button>
+                <button type="button" className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/80 px-2 py-1 text-[11px] text-muted-foreground shadow-sm transition hover:border-cyan-400 hover:text-cyan-600" onClick={() => onEditMessage?.(index)} title="Edit message">
+                  <Edit3 className="size-3" /> Edit
+                </button>
+                <button type="button" className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-background/80 px-2 py-1 text-[11px] text-muted-foreground shadow-sm transition hover:border-red-400 hover:text-red-600" onClick={() => onDeleteMessage?.(index)} title="Delete message">
+                  <Trash2 className="size-3" /> Delete
+                </button>
+              </div>
+            ) : null}
           </Message>
         ))}
-        {isLoading && (
-          <div className="flex justify-center py-4">
-            <Loader size={16} className="text-gray-500 dark:text-gray-400" />
+        {isLoading && chatHistory.length === 1 && chatHistory[0].type === "user" ? (
+          <div className="py-8">
+            <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-white/50 bg-white/45 p-6 shadow-[0_12px_45px_-20px_rgba(34,211,238,0.55)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]">
+              <div className="flex items-center gap-4">
+                <GenerationSpinner />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    Building your app
+                    <span className="inline-flex gap-0.5" aria-hidden="true">
+                      <span className="size-1 animate-bounce rounded-full bg-cyan-500 [animation-delay:-0.3s]" />
+                      <span className="size-1 animate-bounce rounded-full bg-sky-500 [animation-delay:-0.15s]" />
+                      <span className="size-1 animate-bounce rounded-full bg-blue-500" />
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    HELION is turning your idea into a working interface.
+                  </div>
+                </div>
+              </div>
+              <div className="mt-5 space-y-2.5" aria-hidden="true">
+                <div className="h-2 overflow-hidden rounded-full bg-muted/40">
+                  <div className="h-full w-2/5 animate-[shimmer_1.8s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+                </div>
+                <div className="h-2 w-5/6 overflow-hidden rounded-full bg-muted/40">
+                  <div className="h-full w-1/2 animate-[shimmer_2.1s_ease-in-out_infinite_200ms] rounded-full bg-gradient-to-r from-transparent via-sky-400 to-transparent" />
+                </div>
+                <div className="h-2 w-3/4 overflow-hidden rounded-full bg-muted/40">
+                  <div className="h-full w-2/5 animate-[shimmer_1.6s_ease-in-out_infinite_400ms] rounded-full bg-gradient-to-r from-transparent via-blue-400 to-transparent" />
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+        ) : isLoading ? (
+          <div className="flex items-center justify-center gap-3 py-5 text-xs text-muted-foreground">
+            <GenerationSpinner compact />
+            <span>HELION is generating…</span>
+          </div>
+        ) : null}
       </ConversationContent>
     </Conversation>
   );

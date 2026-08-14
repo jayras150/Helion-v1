@@ -64,6 +64,7 @@ export function HomeClient() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [chatHistory, setChatHistory] = useState<
     Array<{
+      id?: string;
       type: "user" | "assistant";
       content: string;
       isStreaming?: boolean;
@@ -79,6 +80,17 @@ export function HomeClient() {
     chatId: string;
   } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleEditMessage = (index: number) => {
+    const target = chatHistory[index];
+    if (!target || target.type !== "user") return;
+    setMessage(target.content);
+    setChatHistory((prev) => prev.slice(0, index));
+  };
+
+  const handleDeleteMessage = (index: number) => {
+    setChatHistory((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+  };
 
   // Latest finished assistant message → source code for the live preview.
   const previewSource = useMemo(() => {
@@ -542,6 +554,8 @@ export function HomeClient() {
             isLoading={isLoading}
             onStreamingComplete={handleStreamingComplete}
             onStreamingStarted={() => setIsLoading(false)}
+            onEditMessage={handleEditMessage}
+            onDeleteMessage={handleDeleteMessage}
           />
 
           {backendState ? (
@@ -590,17 +604,20 @@ export function HomeClient() {
       {/* Main Content */}
       <div className="flex flex-1 items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-4xl">
-          <div className="mb-12 text-center">
-            <h2 className="mb-4 font-bold text-4xl text-gray-900 dark:text-white">
-              What can we build together?
+          <div className="ui-reveal relative mb-12 text-center">
+            <div className="ui-float pointer-events-none absolute -top-20 left-1/2 size-44 -translate-x-1/2 rounded-full bg-cyan-400/20 blur-3xl" />
+            <p className="relative mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">AI product studio</p>
+            <h2 className="relative mb-4 font-semibold text-4xl tracking-tight text-gray-900 sm:text-6xl dark:text-white">
+              Turn a thought into <span className="bg-gradient-to-r from-cyan-400 via-sky-500 to-blue-600 bg-clip-text text-transparent">something real.</span>
             </h2>
+            <p className="relative mx-auto max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">Describe the interface, workflow, or product you imagine. HELION will shape the system, generate the code, and make it ready to preview.</p>
           </div>
 
           {/* Prompt Input */}
           <div className="mx-auto max-w-2xl">
             <PromptInput
               onSubmit={handleSendMessage}
-              className="relative w-full"
+              className="ui-reveal relative w-full rounded-2xl border-cyan-500/30 shadow-[0_20px_70px_-28px_rgba(14,165,233,0.7)] transition-shadow focus-within:shadow-[0_20px_80px_-24px_rgba(14,165,233,0.9)]"
               onImageDrop={handleImageFiles}
               isDragOver={isDragOver}
               onDragOver={handleDragOver}

@@ -107,13 +107,14 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="ui-reveal space-y-6">
       {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => {
           const Icon = card.icon;
           return (
-            <Card key={card.title} className="py-4">
+            <Card key={card.title} className="group relative overflow-hidden border-border/70 bg-card/70 py-4 shadow-sm backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-cyan-500/30 hover:shadow-xl hover:shadow-cyan-500/10">
+              <div className="pointer-events-none absolute -right-8 -top-8 size-24 rounded-full bg-cyan-400/10 blur-2xl transition-transform duration-500 group-hover:scale-150" />
               <CardHeader className="flex-row items-center justify-between px-4 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {card.title}
@@ -133,7 +134,7 @@ export default function AdminDashboard() {
 
       <div className="grid gap-4 lg:grid-cols-7">
         {/* Chart */}
-        <Card className="lg:col-span-4">
+        <Card className="overflow-hidden border-border/70 bg-card/70 lg:col-span-4 shadow-sm backdrop-blur">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CalendarDays className="size-4" /> 14-Day Activity
@@ -153,10 +154,10 @@ export default function AdminDashboard() {
                   </span>
                   <div
                     className={cn(
-                      "w-full rounded-t-sm transition-colors",
+                      "w-full rounded-t-sm bg-gradient-to-t from-cyan-600 to-sky-400 transition-all duration-500 group-hover:brightness-110",
                       s.count > 0
-                        ? "bg-primary hover:bg-primary/80"
-                        : "bg-muted",
+                        ? ""
+                        : "opacity-20",
                     )}
                     style={{ height: `${Math.max((s.count / maxCount) * 100, 3)}%` }}
                   />
@@ -170,7 +171,7 @@ export default function AdminDashboard() {
         </Card>
 
         {/* Scope breakdown */}
-        <Card className="lg:col-span-3">
+        <Card className="border-border/70 bg-card/70 lg:col-span-3 shadow-sm backdrop-blur">
           <CardHeader>
             <CardTitle>Project Scope</CardTitle>
             <CardDescription>Project type distribution</CardDescription>
@@ -204,7 +205,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Recent chats */}
-      <Card>
+      <Card className="border-border/70 bg-card/70 shadow-sm backdrop-blur">
         <CardHeader className="flex-row items-center justify-between">
           <div>
             <CardTitle>Recent Projects</CardTitle>
@@ -222,7 +223,7 @@ export default function AdminDashboard() {
               <Link
                 key={chat.id}
                 href={`/chats/${chat.id}`}
-                className="hover:bg-muted/50 flex items-center gap-3 rounded-lg px-2 py-2 transition-colors"
+                className="group hover:bg-muted/50 flex items-center gap-3 rounded-xl border border-transparent px-2 py-2.5 transition-all hover:border-cyan-500/20 hover:shadow-sm"
               >
                 <Avatar className="size-8">
                   <AvatarFallback className="bg-primary/10 text-primary text-xs">

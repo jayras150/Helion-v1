@@ -20,9 +20,11 @@ import { formatRelativeTime } from "./utils";
 
 interface ProjectCardProps {
   project: Project;
+  selected?: boolean;
+  onSelect?: (selected: boolean) => void;
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, selected = false, onSelect }: ProjectCardProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -53,7 +55,19 @@ export function ProjectCard({ project }: ProjectCardProps) {
   };
 
   return (
-    <div className="group relative overflow-hidden rounded-lg border border-border bg-white transition-shadow hover:shadow-lg dark:border-input dark:bg-zinc-900">
+    <div className={`group relative overflow-hidden rounded-lg border bg-white transition-all hover:shadow-lg dark:bg-zinc-900 ${selected ? "border-cyan-500 ring-2 ring-cyan-500/20" : "border-border dark:border-input"}`}>
+      {onSelect ? (
+        <label className="absolute top-3 left-3 z-10 flex cursor-pointer items-center gap-2 rounded-lg border border-white/70 bg-white/85 px-2 py-1.5 text-xs font-medium text-gray-700 opacity-0 shadow-sm backdrop-blur transition-opacity group-hover:opacity-100 has-[:focus-visible]:opacity-100 dark:border-zinc-700/80 dark:bg-zinc-900/85 dark:text-gray-200">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={(event) => onSelect(event.target.checked)}
+            className="size-4 accent-cyan-500"
+            aria-label={`Select ${project.name}`}
+          />
+          Select
+        </label>
+      ) : null}
       <Link href={`/chats/${project.id}`} className="block">
         <ProjectThumbnail
           chatId={project.id}

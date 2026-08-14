@@ -59,8 +59,8 @@ export function AdminShell({ children }: AdminShellProps) {
 
   const sidebar = (
     <div className="flex h-full flex-col">
-      <div className="flex h-14 items-center gap-2 px-4">
-        <div className="bg-primary text-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-lg">
+      <div className="flex h-16 items-center gap-2 px-4">
+        <div className="ui-pulse-ring flex size-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 text-white shadow-lg">
           <ShieldCheck className="size-4" />
         </div>
         {!collapsed && (
@@ -88,10 +88,10 @@ export function AdminShell({ children }: AdminShellProps) {
                 onClick={() => setMobileOpen(false)}
                 title={collapsed ? item.title : undefined}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   active
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                    ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20"
+                    : "text-muted-foreground hover:translate-x-0.5 hover:bg-accent hover:text-foreground",
                   collapsed && "justify-center px-0",
                 )}
               >
@@ -133,7 +133,7 @@ export function AdminShell({ children }: AdminShellProps) {
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          "bg-sidebar text-sidebar-foreground hidden border-r transition-[width] duration-200 md:block",
+          "bg-sidebar/90 text-sidebar-foreground hidden border-r shadow-[12px_0_40px_-30px_rgba(8,145,178,0.7)] backdrop-blur-xl transition-[width] duration-200 md:block",
           collapsed ? "w-16" : "w-64",
         )}
       >
@@ -163,7 +163,7 @@ export function AdminShell({ children }: AdminShellProps) {
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background/70 px-4 shadow-sm backdrop-blur-xl">
           <Button
             variant="ghost"
             size="icon"
@@ -186,7 +186,10 @@ export function AdminShell({ children }: AdminShellProps) {
               <PanelLeftClose className="size-4" />
             )}
           </Button>
-          <h1 className="text-base font-semibold">{title}</h1>
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-600 dark:text-cyan-300">Control center</p>
+            <h1 className="text-base font-semibold">{title}</h1>
+          </div>
           <div className="ml-auto flex items-center gap-2">
             <Button asChild variant="ghost" size="sm">
               <Link href="/" className="gap-1.5">
