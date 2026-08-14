@@ -81,6 +81,39 @@ export function ChatDetailClient() {
     }
   };
 
+  // Auto-open the preview when a NEW finished assistant message with files
+  // arrives. This covers Upstash background mode, where no stream fires
+  // onComplete (so handleStreamingDone above never runs). Streaming mode also
+  // hits this — harmless, it just opens the already-open preview. Pre-existing
+  // messages (chat loaded from the DB) are never auto-opened.
+  const chatReadyRef = useRef(false);
+  const lastAssistantKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (isLoadingChat) {
+      return;
+    }
+    const finished = chatHistory.filter(
+      (m) => m.type === "assistant" && !m.isStreaming && m.content,
+    );
+    const latest = finished[finished.length - 1];
+    const key = latest
+      ? `${latest.content.length}-${latest.content.slice(-40)}`
+      : null;
+    if (!chatReadyRef.current) {
+      chatReadyRef.current = true;
+      lastAssistantKeyRef.current = key;
+      return;
+    }
+    if (!latest || lastAssistantKeyRef.current === key) {
+      return;
+    }
+    lastAssistantKeyRef.current = key;
+    const scope = parseScopeTag(latest.content);
+    if (extractProjectFiles(latest.content) && scope !== "backend") {
+      setIsPreviewOpen(true);
+    }
+  }, [chatHistory, isLoadingChat]);
+
   // Detect the latest backend/fullstack assistant message (from history or a
   // fresh stream) and surface an E2B backend panel for it. A contentKey keeps
   // the panel mounted without redeploying when unrelated history changes.

@@ -104,6 +104,36 @@ export function HomeClient() {
     return null;
   }, [chatHistory]);
 
+  // Auto-open the preview when a NEW finished assistant message with files
+  // arrives. Covers Upstash background mode (no stream → onComplete never
+  // fires); harmless for streaming mode (preview already open). Because the
+  // home chat starts empty, the first render just primes the ref and never
+  // auto-opens anything.
+  const homeChatReadyRef = useRef(false);
+  const lastAssistantKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const finished = chatHistory.filter(
+      (m) => m.type === "assistant" && !m.isStreaming && m.content,
+    );
+    const latest = finished[finished.length - 1];
+    const key = latest
+      ? `${latest.content.length}-${latest.content.slice(-40)}`
+      : null;
+    if (!homeChatReadyRef.current) {
+      homeChatReadyRef.current = true;
+      lastAssistantKeyRef.current = key;
+      return;
+    }
+    if (!latest || lastAssistantKeyRef.current === key) {
+      return;
+    }
+    lastAssistantKeyRef.current = key;
+    const scope = parseScopeTag(latest.content);
+    if (extractProjectFiles(latest.content) && scope !== "backend") {
+      setIsPreviewOpen(true);
+    }
+  }, [chatHistory]);
+
   const handleReset = () => {
     // Reset all chat-related state
     setShowChatInterface(false);

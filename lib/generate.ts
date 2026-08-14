@@ -5,7 +5,6 @@ import { extractProjectFiles } from "@/lib/extract-files";
 import {
   getChatMessagesByChatId,
   insertChatMessage,
-  updateChatMessageContent,
 } from "@/lib/db/queries";
 import { detectScopeFromPrompt, parseScopeTag } from "@/lib/scope";
 import { buildChatSystemPrompt } from "@/lib/skills";
@@ -36,6 +35,7 @@ export async function ensureCodeOutput(
   text: string,
   userMessage: string,
   abortSignal?: AbortSignal,
+  hasExistingProject = false,
 ): Promise<string> {
   const scope = parseScopeTag(text) ?? detectScopeFromPrompt(userMessage);
   if (scope === "text") {
@@ -43,7 +43,14 @@ export async function ensureCodeOutput(
   }
   const files = extractProjectFiles(text);
   const count = files ? Object.keys(files).length : 0;
-  const minNeeded = scope === "backend" ? 1 : MIN_CODE_FILES;
+  // In edit mode a 1-file reply is a VALID edit (the model only outputs the
+  // files it changed) — never "correct" it into a full regeneration. Only
+  // empty replies (0 files) count as plan-only.
+  const minNeeded = hasExistingProject
+    ? 1
+    : scope === "backend"
+      ? 1
+      : MIN_CODE_FILES;
   if (count >= minNeeded) {
     return text;
   }
@@ -94,10 +101,12 @@ export async function buildGenerationContext(chatId: string): Promise<{
 }
 
 /**
- * Runs a full generation for a chat and persists the assistant reply
- * (raw message first, then upgraded with the plan-only correction).
+ * Runs a full generation for a chat and persists the assistant reply,
+ * auto-correcting plan-only responses BEFORE persisting so the stored message
+ * is always the final content (a background client polling the chat never sees
+ * the raw plan-only draft).
  *
- * Used by the Upstash QStash background job so generation completes even when
+ * Used by the background job (/api/chat/run) so generation completes even when
  * the browser disconnected / went idle. Runs with its own 10-minute timeout.
  *
  * Returns the final (possibly corrected) reply text.
@@ -127,39 +136,28 @@ export async function generateAndPersistReply({
       system,
       messages,
       abortSignal: controller.signal,
-      onFinish: async ({ text }) => {
-        if (!text) {
-          return;
-        }
-        const scope = parseScopeTag(text) ?? scopeHint;
-        try {
-          // Persist the raw reply IMMEDIATELY so the assistant message exists
-          // even if the corrective pass below fails.
-          const inserted = await insertChatMessage({
-            chatId,
-            role: "assistant",
-            content: text,
-            scope,
-          });
-          const final = await ensureCodeOutput(
-            text,
-            resolvedUserMessage,
-            controller.signal,
-          );
-          if (final && final !== text) {
-            await updateChatMessageContent(
-              inserted.id,
-              final,
-              parseScopeTag(final) ?? scope,
-            );
-          }
-        } catch (error) {
-          console.error("Failed to persist assistant message:", error);
-        }
-      },
     });
     const fullText = (await result.text).trim();
-    return fullText;
+    if (!fullText) {
+      return "";
+    }
+    const scope = parseScopeTag(fullText) ?? scopeHint;
+    // Auto-correct plan-only responses, then persist the FINAL content once
+    // (so a background client polling the chat only ever sees the corrected
+    // reply, never the raw plan-only draft).
+    const final = await ensureCodeOutput(
+      fullText,
+      resolvedUserMessage,
+      controller.signal,
+      hasExistingProject,
+    );
+    await insertChatMessage({
+      chatId,
+      role: "assistant",
+      content: final,
+      scope: parseScopeTag(final) ?? scope,
+    });
+    return final;
   } finally {
     clearTimeout(timeoutId);
   }

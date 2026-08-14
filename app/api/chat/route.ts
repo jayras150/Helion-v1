@@ -111,17 +111,25 @@ export async function POST(request: NextRequest) {
     // Upstash Redis background mode: record a job and return immediately. The
     // client fires /api/chat/run, which generates server-side (and keeps going
     // even if the browser disconnects / goes idle), then polls for the reply.
-    // Falls back to streaming when Upstash isn't configured.
+    // Falls back to streaming when Upstash isn't configured / Redis fails.
     if (background && isUpstashConfigured()) {
-      await createJob(chat.id);
-      return new Response(JSON.stringify({ id: chat.id, background: true }), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          "X-Chat-Id": chat.id,
-          "X-Background": "1",
-        },
-      });
+      try {
+        await createJob(chat.id);
+        return new Response(JSON.stringify({ id: chat.id, background: true }), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "X-Chat-Id": chat.id,
+            "X-Background": "1",
+          },
+        });
+      } catch (error) {
+        console.error(
+          "[chat] Upstash job failed, falling back to streaming:",
+          error,
+        );
+        // Fall through to the streaming path below.
+      }
     }
 
     // Build the conversation context (history + edit-mode detection).
@@ -162,10 +170,13 @@ export async function POST(request: NextRequest) {
             scope,
           });
           // Auto-correct plan-only responses, then upgrade the persisted text.
+          // (Edit-mode replies with few files are valid edits, so correction is
+          // only triggered for truly empty replies when a project exists.)
           const final = await ensureCodeOutput(
             text,
             message,
             controller.signal,
+            hasExistingProject,
           );
           if (final && final !== text) {
             await updateChatMessageContent(
