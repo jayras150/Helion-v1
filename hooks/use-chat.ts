@@ -3,7 +3,10 @@ import { useCallback, useEffect, useState } from "react";
 import useSWR, { mutate } from "swr";
 import { useStreaming } from "@/contexts/streaming-context";
 import { extractProjectFiles } from "@/lib/extract-files";
-import { pollForCorrectedMessage } from "@/lib/poll-corrected-message";
+import {
+  pollForCorrectedMessage,
+  pollForNewAssistantMessage,
+} from "@/lib/poll-corrected-message";
 import { parseScopeTag } from "@/lib/scope";
 import type { Chat, ChatMessage } from "@/types/chat";
 
@@ -183,9 +186,38 @@ export function useChat(chatId: string) {
             message: userMessage,
             chatId,
             streaming: true,
+            background: true,
             ...(attachments && attachments.length > 0 && { attachments }),
           }),
         });
+
+        // Upstash QStash background mode: the server enqueues a job and
+        // returns immediately; poll for the persisted assistant reply instead
+        // of reading a stream. Falls back to streaming when QStash is unset.
+        if (response.headers.get("X-Background") === "1") {
+          const data = (await response.json().catch(() => ({}))) as {
+            id?: string;
+          };
+          const bgChatId = data.id || chatId;
+          setIsStreaming(true);
+          const knownContents = chatHistory
+            .map((m) => m.content)
+            .filter(Boolean);
+          const reply = await pollForNewAssistantMessage(
+            bgChatId,
+            knownContents,
+          );
+          setIsStreaming(false);
+          setIsLoading(false);
+          if (reply) {
+            setChatHistory((prev) => [
+              ...prev,
+              { type: "assistant", content: reply },
+            ]);
+            await fetchAndCacheChatDetails(bgChatId);
+          }
+          return;
+        }
 
         const streamBody = await getStreamingBodyOrThrow(response);
 
@@ -212,7 +244,7 @@ export function useChat(chatId: string) {
         setIsLoading(false);
       }
     },
-    [message, isLoading, chatId, getStreamingBodyOrThrow],
+    [message, isLoading, chatId, chatHistory, getStreamingBodyOrThrow],
   );
 
   const handleStreamingComplete = useCallback(

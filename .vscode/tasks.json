@@ -26,6 +26,11 @@
 			"type": "shell",
 			"command": "git status --short",
 			"group": "build"
+		},
+		{
+			"label": "commit-push-upstash",
+			"type": "shell",
+			"command": "git add -A && git commit --no-verify -m \"feat: Upstash QStash background generation (survives browser disconnect)\" && git push origin main"
 		}
 	]
 }

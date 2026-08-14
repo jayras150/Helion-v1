@@ -28,7 +28,10 @@ import { PreviewPanel } from "@/components/chat/preview-panel";
 import { AppHeader } from "@/components/shared/app-header";
 import { extractProjectFiles } from "@/lib/extract-files";
 import { mergeProjectContent } from "@/lib/merge-files";
-import { pollForCorrectedMessage } from "@/lib/poll-corrected-message";
+import {
+  pollForCorrectedMessage,
+  pollForNewAssistantMessage,
+} from "@/lib/poll-corrected-message";
 import { parseScopeTag, type Scope } from "@/lib/scope";
 
 // Component that uses useSearchParams - needs to be wrapped in Suspense
@@ -270,9 +273,44 @@ export function HomeClient() {
         body: JSON.stringify({
           message: userMessage,
           streaming: true,
+          background: true,
           attachments: currentAttachments.map((att) => ({ url: att.dataUrl })),
         }),
       });
+
+      // Upstash QStash background mode: the server enqueues a job and returns
+      // immediately; poll for the persisted assistant reply instead of reading
+      // a stream. Falls back to streaming when QStash is unset.
+      if (response.headers.get("X-Background") === "1") {
+        const data = (await response.json().catch(() => ({}))) as {
+          id?: string;
+        };
+        const bgChatId =
+          data.id || response.headers.get("X-Chat-Id") || currentChatId;
+        if (!bgChatId) {
+          setIsLoading(false);
+          return;
+        }
+        if (bgChatId && !currentChatId) {
+          setCurrentChatId(bgChatId);
+          window.history.pushState(null, "", `/chats/${bgChatId}`);
+        }
+        const knownContents = chatHistory
+          .map((m) => m.content)
+          .filter(Boolean);
+        const reply = await pollForNewAssistantMessage(
+          bgChatId,
+          knownContents,
+        );
+        setIsLoading(false);
+        if (reply) {
+          setChatHistory((prev) => [
+            ...prev,
+            { type: "assistant", content: reply },
+          ]);
+        }
+        return;
+      }
 
       const chatId = response.headers.get("X-Chat-Id");
       const streamBody = await getStreamingBodyOrThrow(response);

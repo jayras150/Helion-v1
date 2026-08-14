@@ -23,6 +23,41 @@ export async function pollForCorrectedMessage(
   timeoutMs = 60_000,
   intervalMs = 1500,
 ): Promise<string | null> {
+  return pollForNewMessage(chatId, knownContents, {
+    timeoutMs,
+    intervalMs,
+    requireFiles: true,
+  });
+}
+
+/**
+ * Polls for ANY new assistant message (regardless of whether it carries code).
+ * Used by the Upstash QStash background flow: the client sends a message, the
+ * server enqueues a background job, and this polls until the assistant reply
+ * is persisted.
+ */
+export async function pollForNewAssistantMessage(
+  chatId: string,
+  knownContents: string[],
+  timeoutMs = 11 * 60_000,
+  intervalMs = 3000,
+): Promise<string | null> {
+  return pollForNewMessage(chatId, knownContents, {
+    timeoutMs,
+    intervalMs,
+    requireFiles: false,
+  });
+}
+
+async function pollForNewMessage(
+  chatId: string,
+  knownContents: string[],
+  {
+    timeoutMs,
+    intervalMs,
+    requireFiles,
+  }: { timeoutMs: number; intervalMs: number; requireFiles: boolean },
+): Promise<string | null> {
   const known = new Set(knownContents);
   const deadline = Date.now() + timeoutMs;
 
@@ -38,14 +73,16 @@ export async function pollForCorrectedMessage(
         const messages = data.messages ?? [];
 
         // Scan from the newest message; accept the latest assistant reply that
-        // isn't one we already have AND actually contains code.
+        // isn't one we already have (and, when required, actually has code).
         for (let i = messages.length - 1; i >= 0; i -= 1) {
           const m = messages[i];
           if (m.role !== "assistant" || !m.content) {
             continue;
           }
-          if (!known.has(m.content) && extractProjectFiles(m.content)) {
-            return m.content;
+          if (!known.has(m.content)) {
+            if (!requireFiles || extractProjectFiles(m.content)) {
+              return m.content;
+            }
           }
           break; // newest assistant message found but not useful → keep polling
         }

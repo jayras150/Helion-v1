@@ -7,14 +7,18 @@ import {
   createChat,
   getChatById,
   getChatCountByUserId,
-  getChatMessagesByChatId,
   insertChatMessage,
   updateChatMessageContent,
 } from "@/lib/db/queries";
 import { userEntitlements } from "@/lib/entitlements";
-import { extractProjectFiles } from "@/lib/extract-files";
+import {
+  buildGenerationContext,
+  ensureCodeOutput,
+  GENERATION_TIMEOUT_MS,
+} from "@/lib/generate";
 import { detectScopeFromPrompt, parseScopeTag } from "@/lib/scope";
 import { buildChatSystemPrompt } from "@/lib/skills";
+import { enqueueGeneration, isQStashConfigured } from "@/lib/upstash";
 
 async function checkRateLimit(
   user: AppUser | null,
@@ -45,79 +49,10 @@ async function checkRateLimit(
   return null;
 }
 
-type HistoryMessage = {
-  role: "user" | "assistant";
-  content: string;
-};
-
-/** Minimum extracted files required before a code-scoped reply is accepted. */
-const MIN_CODE_FILES = 2;
-
-/**
- * Hard cap on a single generation. Without this, a hung provider/model keeps
- * the request (and the client loader) spinning forever — the chat row gets
- * created + user message persisted, but no assistant reply ever lands. A
- * bounded timeout fails gracefully instead.
- */
-const GENERATION_TIMEOUT_MS = 600_000; // 10 minutes
-
-const CORRECTIVE_SYSTEM = `You are HELION, an expert full-stack engineer.
-Your previous answer was ONLY a plan/outline — the user needs the ACTUAL code.
-Output the COMPLETE source code of every file as fenced code blocks. Each
-block must start with the file path (filename="..." attribute, or a // path
-comment on the first code line). Do NOT include plans, summaries, or
-verification steps — only the code files, starting with a scope tag
-(<!-- scope:frontend|backend|fullstack|text -->).`;
-
-/**
- * If the model replied with a plan/outline instead of actual code (too few
- * files extracted), ask it once more to output the real code. Falls back to
- * the original text if the correction also fails.
- */
-async function ensureCodeOutput(
-  text: string,
-  userMessage: string,
-  abortSignal?: AbortSignal,
-): Promise<string> {
-  const scope = parseScopeTag(text) ?? detectScopeFromPrompt(userMessage);
-  if (scope === "text") {
-    return text;
-  }
-  const files = extractProjectFiles(text);
-  const count = files ? Object.keys(files).length : 0;
-  const minNeeded = scope === "backend" ? 1 : MIN_CODE_FILES;
-  if (count >= minNeeded) {
-    return text;
-  }
-
-  console.warn(
-    `[chat] plan-only response detected (scope=${scope}, files=${count}) — correcting…`,
-  );
-  try {
-    const fix = await streamText({
-      model: getModel(),
-      system: CORRECTIVE_SYSTEM,
-      abortSignal,
-      messages: [
-        {
-          role: "user",
-          content:
-            `The user asked for: ${userMessage}\n\nYour (incomplete) response was:\n${text}`,
-        },
-      ],
-    });
-    const fixed = (await fix.text).trim();
-    return fixed || text;
-  } catch (error) {
-    console.error("Code output correction failed:", error);
-    return text;
-  }
-}
-
 export async function POST(request: NextRequest) {
   try {
     const user = await getServerUser();
-    const { message, chatId, streaming } = await request.json();
+    const { message, chatId, streaming, background } = await request.json();
 
     if (!user?.id) {
       return NextResponse.json(
@@ -173,20 +108,34 @@ export async function POST(request: NextRequest) {
       content: message,
     });
 
-    // Build the conversation history for context (includes the new user message).
-    const history = await getChatMessagesByChatId(chat.id);
-    const messages: HistoryMessage[] = history.map((msg) => ({
-      role: msg.role as "user" | "assistant",
-      content: msg.content,
-    }));
+    // Upstash QStash background mode: enqueue the generation as a job so it
+    // completes even if the browser disconnects / goes idle. The client polls
+    // for the assistant reply. Falls back to streaming when QStash isn't set.
+    if (background && isQStashConfigured()) {
+      const origin = new URL(request.url).origin;
+      await enqueueGeneration(
+        { chatId: chat.id, userMessage: message },
+        origin,
+      );
+      return new Response(JSON.stringify({ id: chat.id, background: true }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "X-Chat-Id": chat.id,
+          "X-Background": "1",
+        },
+      });
+    }
+
+    // Build the conversation context (history + edit-mode detection).
+    const { messages, hasExistingProject } = await buildGenerationContext(
+      chat.id,
+    );
 
     // System prompt is editable from /admin/settings (DB), plus the enabled
     // AI skills (vendored SKILL.md) that match the user's message. When the
     // chat already contains a generated project, use the edit contract so the
     // model only outputs the files it changed (saves tokens on edit requests).
-    const hasExistingProject = history.some(
-      (m) => m.role === "assistant" && extractProjectFiles(m.content),
-    );
     const system = await buildChatSystemPrompt(message, { hasExistingProject });
 
     // Abort the generation after the timeout so a hung provider/model can't
