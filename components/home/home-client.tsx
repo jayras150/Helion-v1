@@ -278,9 +278,10 @@ export function HomeClient() {
         }),
       });
 
-      // Upstash QStash background mode: the server enqueues a job and returns
-      // immediately; poll for the persisted assistant reply instead of reading
-      // a stream. Falls back to streaming when QStash is unset.
+      // Upstash Redis background mode: the server returns immediately with a
+      // job; fire /api/chat/run (non-streaming request that keeps running
+      // server-side even if the browser closes), then poll for the reply.
+      // Falls back to streaming when Upstash is unset.
       if (response.headers.get("X-Background") === "1") {
         const data = (await response.json().catch(() => ({}))) as {
           id?: string;
@@ -295,6 +296,11 @@ export function HomeClient() {
           setCurrentChatId(bgChatId);
           window.history.pushState(null, "", `/chats/${bgChatId}`);
         }
+        fetch("/api/chat/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chatId: bgChatId }),
+        }).catch(() => {});
         const knownContents = chatHistory
           .map((m) => m.content)
           .filter(Boolean);

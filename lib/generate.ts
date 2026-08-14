@@ -107,13 +107,17 @@ export async function generateAndPersistReply({
   userMessage,
 }: {
   chatId: string;
-  userMessage: string;
+  userMessage?: string;
 }): Promise<string> {
   const { messages, hasExistingProject } = await buildGenerationContext(chatId);
-  const system = await buildChatSystemPrompt(userMessage, {
+  const resolvedUserMessage =
+    userMessage ??
+    messages.filter((m) => m.role === "user").pop()?.content ??
+    "";
+  const system = await buildChatSystemPrompt(resolvedUserMessage, {
     hasExistingProject,
   });
-  const scopeHint = detectScopeFromPrompt(userMessage);
+  const scopeHint = detectScopeFromPrompt(resolvedUserMessage);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), GENERATION_TIMEOUT_MS);
@@ -139,7 +143,7 @@ export async function generateAndPersistReply({
           });
           const final = await ensureCodeOutput(
             text,
-            userMessage,
+            resolvedUserMessage,
             controller.signal,
           );
           if (final && final !== text) {

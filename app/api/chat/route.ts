@@ -18,7 +18,7 @@ import {
 } from "@/lib/generate";
 import { detectScopeFromPrompt, parseScopeTag } from "@/lib/scope";
 import { buildChatSystemPrompt } from "@/lib/skills";
-import { enqueueGeneration, isQStashConfigured } from "@/lib/upstash";
+import { createJob, isUpstashConfigured } from "@/lib/upstash";
 
 async function checkRateLimit(
   user: AppUser | null,
@@ -108,15 +108,12 @@ export async function POST(request: NextRequest) {
       content: message,
     });
 
-    // Upstash QStash background mode: enqueue the generation as a job so it
-    // completes even if the browser disconnects / goes idle. The client polls
-    // for the assistant reply. Falls back to streaming when QStash isn't set.
-    if (background && isQStashConfigured()) {
-      const origin = new URL(request.url).origin;
-      await enqueueGeneration(
-        { chatId: chat.id, userMessage: message },
-        origin,
-      );
+    // Upstash Redis background mode: record a job and return immediately. The
+    // client fires /api/chat/run, which generates server-side (and keeps going
+    // even if the browser disconnects / goes idle), then polls for the reply.
+    // Falls back to streaming when Upstash isn't configured.
+    if (background && isUpstashConfigured()) {
+      await createJob(chat.id);
       return new Response(JSON.stringify({ id: chat.id, background: true }), {
         status: 200,
         headers: {
