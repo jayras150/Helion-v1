@@ -24,22 +24,33 @@ export async function GET() {
 
   const status = new Map(readCredentialStatus().map((s) => [s.key, s.set]));
   const values = new Map(readCredentialValues().map((v) => [v.key, v.value]));
-  const credentials = await Promise.all(CREDENTIAL_DEFS.map(async (d) => {
-    const runtimeValue = await getRuntimeCredential(d.key);
-    const effectiveValue = runtimeValue ?? values.get(d.key) ?? "";
-    if (runtimeValue) status.set(d.key, true);
-    return {
-    key: d.key,
-    label: d.label,
-    description: d.description,
-    secret: d.secret,
-    requiresRestart: d.requiresRestart,
-    group: d.group,
-    set: status.get(d.key) ?? false,
-    // Only non-secret config (endpoint, model, etc.) is exposed; secrets stay masked.
-    value: d.secret ? "" : effectiveValue,
-    };
-  }));
+  const credentials = await Promise.all(
+    CREDENTIAL_DEFS.map(async (d) => {
+      // A stale/misconfigured production database must not blank the whole
+      // credentials panel. Fall back to Vercel's process.env values and keep
+      // the panel readable; saving still reports the database error clearly.
+      let runtimeValue: string | null = null;
+      try {
+        runtimeValue = await getRuntimeCredential(d.key);
+      } catch (error) {
+        console.error(`Failed to read runtime credential ${d.key}:`, error);
+      }
+      const effectiveValue =
+        runtimeValue ?? values.get(d.key) ?? process.env[d.key] ?? "";
+      if (runtimeValue) status.set(d.key, true);
+      return {
+        key: d.key,
+        label: d.label,
+        description: d.description,
+        secret: d.secret,
+        requiresRestart: d.requiresRestart,
+        group: d.group,
+        set: status.get(d.key) ?? Boolean(effectiveValue),
+        // Only non-secret config (endpoint, model, etc.) is exposed; secrets stay masked.
+        value: d.secret ? "" : effectiveValue,
+      };
+    }),
+  );
 
   return NextResponse.json({ credentials });
 }
