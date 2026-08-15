@@ -179,7 +179,9 @@ export function useChat(chatId: string) {
         const statusResponse = await fetch(`/api/chat/run?chatId=${encodeURIComponent(chatId)}`);
         if (!statusResponse.ok) return;
         const job = (await statusResponse.json()) as { configured?: boolean; status?: string | null };
-        if (!job.configured || (job.status !== "pending" && job.status !== "processing")) return;
+        if (!job.configured || (job.status !== "pending" && job.status !== "processing")) {
+          return;
+        }
 
         setIsLoading(true);
         setIsStreaming(true);

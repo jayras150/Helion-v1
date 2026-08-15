@@ -57,12 +57,23 @@ function redis(): Redis {
 }
 
 export type JobStatus = "pending" | "processing" | "done" | "failed";
+type StoredJob = { status?: JobStatus; createdAt?: number; startedAt?: number; finishedAt?: number };
 
 const JOB_PREFIX = "helion:chat:job:";
 const JOB_TTL_SECONDS = 20 * 60; // 20 minutes
 
 function jobKey(chatId: string): string {
   return JOB_PREFIX + chatId;
+}
+
+function parseJob(raw: unknown): StoredJob {
+  if (!raw) return {};
+  if (typeof raw === "object") return (raw as StoredJob) ?? {};
+  try {
+    return JSON.parse(String(raw)) as StoredJob;
+  } catch {
+    return {};
+  }
 }
 
 /** Creates a pending job for a chat (no-op if one already exists). */
@@ -82,14 +93,7 @@ export async function createJob(chatId: string): Promise<void> {
 export async function claimJob(chatId: string): Promise<boolean> {
   const key = jobKey(chatId);
   const raw = await redis().get<string>(key);
-  let job: { status?: string } = {};
-  if (raw) {
-    try {
-      job = JSON.parse(raw) as { status?: string };
-    } catch {
-      job = {};
-    }
-  }
+  const job = parseJob(raw);
   if (job.status === "processing" || job.status === "done") {
     return false;
   }
@@ -120,7 +124,7 @@ export async function getJobStatus(chatId: string): Promise<JobStatus | null> {
     return null;
   }
   try {
-    return (JSON.parse(raw) as { status?: JobStatus }).status ?? null;
+    return parseJob(raw).status ?? null;
   } catch {
     return null;
   }
