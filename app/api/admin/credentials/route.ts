@@ -3,9 +3,11 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
 import {
   CREDENTIAL_DEFS,
+  getRuntimeCredential,
   readCredentialStatus,
   readCredentialValues,
   setCredentialValue,
+  setRuntimeCredential,
 } from "@/lib/env-writer";
 
 /**
@@ -22,7 +24,11 @@ export async function GET() {
 
   const status = new Map(readCredentialStatus().map((s) => [s.key, s.set]));
   const values = new Map(readCredentialValues().map((v) => [v.key, v.value]));
-  const credentials = CREDENTIAL_DEFS.map((d) => ({
+  const credentials = await Promise.all(CREDENTIAL_DEFS.map(async (d) => {
+    const runtimeValue = await getRuntimeCredential(d.key);
+    const effectiveValue = runtimeValue ?? values.get(d.key) ?? "";
+    if (runtimeValue) status.set(d.key, true);
+    return {
     key: d.key,
     label: d.label,
     description: d.description,
@@ -31,7 +37,8 @@ export async function GET() {
     group: d.group,
     set: status.get(d.key) ?? false,
     // Only non-secret config (endpoint, model, etc.) is exposed; secrets stay masked.
-    value: d.secret ? "" : (values.get(d.key) ?? ""),
+    value: d.secret ? "" : effectiveValue,
+    };
   }));
 
   return NextResponse.json({ credentials });
@@ -64,7 +71,13 @@ export async function POST(request: NextRequest) {
 
   const value = body.value ?? "";
   try {
-    setCredentialValue(key, value);
+    if (process.env.VERCEL === "1" || process.env.NODE_ENV === "production") {
+      await setRuntimeCredential(key, value);
+      if (value) process.env[key] = value;
+      else delete process.env[key];
+    } else {
+      setCredentialValue(key, value);
+    }
   } catch (error) {
     console.error("Failed to update credential:", error);
     return NextResponse.json(

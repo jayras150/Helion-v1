@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
+import { getRuntimeCredential } from "@/lib/env-writer";
 
 /**
  * GET /api/admin/models
@@ -12,12 +13,12 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const key = process.env.AI_API_KEY;
+  const key = (await getRuntimeCredential("AI_API_KEY")) ?? process.env.AI_API_KEY;
   if (!key) {
     return NextResponse.json({ error: "AI API key is not configured." }, { status: 400 });
   }
 
-  const base = process.env.AI_BASE_URL?.replace(/\/+$/, "") || "https://api.openai.com/v1";
+  const base = ((await getRuntimeCredential("AI_BASE_URL")) ?? process.env.AI_BASE_URL)?.replace(/\/+$/, "") || "https://api.openai.com/v1";
   try {
     const res = await fetch(`${base}/models`, {
       headers: { Authorization: `Bearer ${key}` },

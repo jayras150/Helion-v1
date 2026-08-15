@@ -55,7 +55,7 @@ export async function ensureCodeOutput(
   );
   try {
     const fix = await streamText({
-      model: getModel(),
+      model: await getModel(),
       system: CORRECTIVE_SYSTEM,
       abortSignal,
       messages: [
@@ -127,7 +127,7 @@ export async function generateAndPersistReply({
   const timeoutId = setTimeout(() => controller.abort(), GENERATION_TIMEOUT_MS);
   try {
     const result = streamText({
-      model: getModel(),
+      model: await getModel(),
       system,
       messages,
       abortSignal: controller.signal,

@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!hasAiKey()) {
+    if (!(await hasAiKey())) {
       return NextResponse.json(
         {
           error:
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
     const timeoutId = setTimeout(() => controller.abort(), GENERATION_TIMEOUT_MS);
 
     const result = streamText({
-      model: getModel(),
+      model: await getModel(),
       system,
       messages,
       abortSignal: controller.signal,

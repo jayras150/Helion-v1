@@ -1,6 +1,7 @@
 import "server-only";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { getSetting, upsertSetting } from "@/lib/db/queries";
 
 /**
  * Reads/writes credential values in the project `.env` file WITHOUT ever
@@ -58,6 +59,22 @@ export const CREDENTIAL_DEFS: CredentialDef[] = [
 export function getEnvFilePath(): string {
   const local = join(process.cwd(), ".env.local");
   return existsSync(local) ? local : join(process.cwd(), ".env");
+}
+
+const RUNTIME_CREDENTIAL_PREFIX = "runtime_credential:";
+
+function isProductionRuntime(): boolean {
+  return process.env.VERCEL === "1" || process.env.NODE_ENV === "production";
+}
+
+/** DB-backed overrides are the durable store on read-only serverless filesystems. */
+export async function getRuntimeCredential(key: string): Promise<string | null> {
+  if (!isProductionRuntime()) return null;
+  return getSetting(`${RUNTIME_CREDENTIAL_PREFIX}${key}`);
+}
+
+export async function setRuntimeCredential(key: string, value: string): Promise<void> {
+  await upsertSetting(`${RUNTIME_CREDENTIAL_PREFIX}${key}`, value);
 }
 
 /** Minimal .env parser (handles KEY=value and KEY="value"). */
