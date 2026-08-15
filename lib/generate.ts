@@ -18,13 +18,13 @@ const MIN_CODE_FILES = 2;
  */
 export const GENERATION_TIMEOUT_MS = 600_000; // 10 minutes
 
-const CORRECTIVE_SYSTEM = `You are HELION, an expert full-stack engineer.
-Your previous answer was ONLY a plan/outline — the user needs the ACTUAL code.
-Output the COMPLETE source code of every file as fenced code blocks. Each
-block must start with the file path (filename="..." attribute, or a // path
-comment on the first code line). Do NOT include plans, summaries, or
-verification steps — only the code files, starting with a scope tag
-(<!-- scope:frontend|backend|fullstack|text -->).`;
+const CORRECTIVE_SYSTEM = `You are a code emitter, not a conversational assistant.
+Ignore the previous answer completely. Do not apologize, explain, self-correct,
+write a plan, or say what you are about to do. Immediately emit the COMPLETE
+working project as raw markdown code blocks only. Start with exactly one scope
+tag (<!-- scope:frontend -->, <!-- scope:backend -->, or <!-- scope:fullstack -->).
+Then output every required file. Every code fence MUST have filename="path.ext"
+on its opening line. Do not put prose before, between, or after code fences.`;
 
 /**
  * If the model replied with a plan/outline instead of actual code (too few
@@ -66,7 +66,9 @@ export async function ensureCodeOutput(
       ],
     });
     const fixed = (await fix.text).trim();
-    return fixed || text;
+    // Never persist another meta-answer: it leaves the preview with no files.
+    // Keep the original only when the repair provider failed entirely.
+    return fixed && extractProjectFiles(fixed) ? fixed : text;
   } catch (error) {
     console.error("Code output correction failed:", error);
     return text;

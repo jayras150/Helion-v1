@@ -96,6 +96,9 @@ export function extractProjectFiles(
     blocks.push({ lang, filename, code });
   }
 
+  // Some models put a scope tag and explanatory text before a fenced file,
+  // but still include a valid `filename` later. Named blocks always win.
+
   // Preferred: blocks annotated with `filename="..."`.
   const namedBlocks = blocks.filter((b) => b.filename);
   if (namedBlocks.length > 0) {

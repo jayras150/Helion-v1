@@ -175,10 +175,12 @@ function buildCatalog(all: SkillMeta[], enabled: Set<string>): string {
  * actual code get reined in.
  */
 const OUTPUT_CONTRACT = `## OUTPUT CONTRACT (MANDATORY)
+- Do not describe your process. Do not say you will write code, correct code, or produce a final answer.
 - Your reply MUST contain the COMPLETE source code of every file the app needs.
 - One file per fenced code block. The block must start with the file path —
   either a filename="src/App.tsx" attribute on the opening tag, or a
   // src/App.tsx (or /* src/App.tsx */) comment as the first code line.
+- The first character of the reply must be the scope tag; the next content must be a code fence.
 - NEVER reply with only a plan, outline, file list, or verification steps
   without the actual code — that will be rejected.
 - Start with the scope tag on the very first line:
