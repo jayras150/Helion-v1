@@ -80,6 +80,11 @@ export function useChat(chatId: string) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const recoveryKeyRef = useRef<string | null>(null);
+  // The handoff exists before ChatDetailClient mounts. Treat it as loading on
+  // the very first render so the welcome screen cannot flash before the
+  // handoff effect attaches the stream.
+  const handoffLoading =
+    handoff.chatId === chatId && Boolean(handoff.stream);
 
   const getStreamingBodyOrThrow = useCallback(async (response: Response) => {
     if (!response.ok) {
@@ -404,7 +409,7 @@ export function useChat(chatId: string) {
     message,
     setMessage,
     currentChat,
-    isLoading,
+    isLoading: isLoading || handoffLoading,
     setIsLoading,
     isStreaming,
     chatHistory,
