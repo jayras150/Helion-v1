@@ -317,9 +317,9 @@ export function HomeClient() {
         body: JSON.stringify({
           message: userMessage,
           streaming: true,
-          // Stream immediately for a v0/Replit-like first-token experience.
-          // QStash remains available for explicit background/recovery flows.
-          background: false,
+          // Durable by default: QStash owns the generation, so refreshes,
+          // closed tabs, and idle browser connections cannot lose the job.
+          background: true,
           attachments: currentAttachments.map((att) => ({ url: att.dataUrl })),
         }),
       });

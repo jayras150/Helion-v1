@@ -241,8 +241,8 @@ export function useChat(chatId: string) {
             message: userMessage,
             chatId,
             streaming: true,
-            // Keep the interactive chat on the low-latency streaming path.
-            background: false,
+            // Durable by default: recover this job from Redis after refresh.
+            background: true,
             ...(attachments && attachments.length > 0 && { attachments }),
           }),
         });
