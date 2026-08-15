@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "@/hooks/use-user";
+import { useStreaming } from "@/contexts/streaming-context";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   clearPromptFromStorage,
@@ -56,6 +57,7 @@ function SearchParamsHandler({ onReset }: { onReset: () => void }) {
 
 export function HomeClient() {
   const { status } = useSession();
+  const { startHandoff } = useStreaming();
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -374,19 +376,20 @@ export function HomeClient() {
       // Register the new chat (id comes from the response header).
       if (chatId && !currentChatId) {
         setCurrentChatId(chatId);
-        router.push(`/chats/${chatId}`);
       }
 
-      // Add streaming assistant response
-      setChatHistory((prev) => [
-        ...prev,
-        {
-          type: "assistant",
-          content: "",
-          isStreaming: true,
-          stream: streamBody,
-        },
-      ]);
+      // The home page unmounts after navigation. Hand the live stream to the
+      // chat page first; otherwise router.push leaves the new page with only
+      // the user message and the generation spinner disappears.
+      if (chatId) {
+        startHandoff(chatId, streamBody, userMessage);
+        router.push(`/chats/${chatId}`);
+      } else {
+        setChatHistory((prev) => [
+          ...prev,
+          { type: "assistant", content: "", isStreaming: true, stream: streamBody },
+        ]);
+      }
     } catch (error) {
       console.error("Error creating chat:", error);
       setIsLoading(false);
