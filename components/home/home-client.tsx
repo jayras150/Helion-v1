@@ -336,7 +336,9 @@ export function HomeClient() {
         }
         if (bgChatId && !currentChatId) {
           setCurrentChatId(bgChatId);
-          window.history.pushState(null, "", `/chats/${bgChatId}`);
+          // Use the App Router so a refresh lands on the durable chat page,
+          // rather than leaving the transient home state at `/`.
+          router.push(`/chats/${bgChatId}`);
         }
         if (response.headers.get("X-QStash") !== "1") {
           fetch("/api/chat/run", {
@@ -370,7 +372,7 @@ export function HomeClient() {
       // Register the new chat (id comes from the response header).
       if (chatId && !currentChatId) {
         setCurrentChatId(chatId);
-        window.history.pushState(null, "", `/chats/${chatId}`);
+        router.push(`/chats/${chatId}`);
       }
 
       // Add streaming assistant response
