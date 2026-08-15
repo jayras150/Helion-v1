@@ -135,6 +135,26 @@ export function ChatMessages({
     return (
       <Conversation>
         <ConversationContent className="mx-auto w-full max-w-3xl">
+          {isLoading ? (
+            <div className="py-8">
+              <div className="mx-auto flex w-full max-w-2xl items-center gap-4 rounded-2xl border border-white/50 bg-white/45 p-6 shadow-[0_12px_45px_-20px_rgba(34,211,238,0.55)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.06]">
+                <GenerationSpinner />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    Building your app
+                    <span className="inline-flex gap-0.5" aria-hidden="true">
+                      <span className="size-1 animate-bounce rounded-full bg-cyan-500 [animation-delay:-0.3s]" />
+                      <span className="size-1 animate-bounce rounded-full bg-sky-500 [animation-delay:-0.15s]" />
+                      <span className="size-1 animate-bounce rounded-full bg-blue-500" />
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    HELION is turning your idea into a working interface.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
           <Message
             from="assistant"
             name="HELION"
@@ -147,6 +167,7 @@ export function ChatMessages({
               can preview right away.
             </MessageContent>
           </Message>
+          )}
         </ConversationContent>
       </Conversation>
     );
