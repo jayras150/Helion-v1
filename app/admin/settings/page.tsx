@@ -6,6 +6,7 @@ import { SettingsTabs } from "@/components/admin/settings-tabs";
 import { SkillsManager } from "@/components/admin/skills-manager";
 import { SystemPromptEditor } from "@/components/admin/system-prompt-editor";
 import { requireAdmin } from "@/lib/admin";
+import { cn } from "@/lib/utils";
 
 const NEXT_VERSION = "16.1.6";
 
@@ -21,16 +22,16 @@ function ConfigRow({
   hint?: string;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-2.5">
+    <div className="flex min-w-0 flex-col gap-2 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <div className="min-w-0">
         <p className="text-sm font-medium">{label}</p>
         {hint ? (
           <p className="truncate text-xs text-muted-foreground">{hint}</p>
         ) : null}
       </div>
-      <div className="flex items-center gap-2">
-        <code className="truncate text-xs text-muted-foreground">{value}</code>
-        <Badge variant={ok ? "default" : "outline"} className={ok ? "" : "text-muted-foreground"}>
+      <div className="flex min-w-0 max-w-full items-center gap-2 sm:max-w-[58%]">
+        <code className="min-w-0 break-all text-xs text-muted-foreground">{value}</code>
+        <Badge variant={ok ? "default" : "outline"} className={cn("shrink-0", ok ? "" : "text-muted-foreground")}>
           {ok ? "Active" : "Not set"}
         </Badge>
       </div>
@@ -154,9 +155,9 @@ export default async function AdminSettings() {
                   <CardDescription>You are signed in as admin</CardDescription>
                 </CardHeader>
                 <CardContent className="text-sm">
-                  <div className="flex items-center justify-between py-1">
+                  <div className="flex min-w-0 flex-col gap-1 py-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                     <span className="text-muted-foreground">Email</span>
-                    <code>{admin.email ?? "—"}</code>
+                    <code className="break-all text-xs sm:text-right">{admin.email ?? "—"}</code>
                   </div>
                 </CardContent>
               </Card>
