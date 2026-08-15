@@ -73,7 +73,7 @@ export function AppHeader({
   return (
     <div
       className={cn(
-        "sticky top-0 z-40 relative border-white/50 bg-white/55 border-b shadow-[0_12px_40px_-24px_rgba(8,145,178,0.85)] backdrop-blur-2xl dark:border-white/10 dark:bg-black/35",
+        "sticky top-0 z-40 relative border-white/60 bg-gradient-to-r from-white/75 via-cyan-50/65 to-indigo-50/75 border-b shadow-[0_14px_45px_-24px_rgba(79,70,229,0.45)] backdrop-blur-2xl dark:border-white/10 dark:from-slate-950/80 dark:via-cyan-950/45 dark:to-indigo-950/65",
         className,
       )}
     >
@@ -81,7 +81,7 @@ export function AppHeader({
         <SearchParamsHandler />
       </Suspense>
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-80" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-cyan-400 via-violet-500 to-pink-400 opacity-90" />
       <div className="px-3 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-2 py-2 sm:h-[4.5rem] sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-0">
           <div className="flex min-w-0 items-center gap-2 sm:gap-5">
@@ -90,10 +90,10 @@ export function AppHeader({
               onClick={handleLogoClick}
               className="group flex shrink-0 items-center gap-2 rounded-xl px-1 py-1 font-bold text-lg tracking-tight"
             >
-              <span className="ui-pulse-ring flex size-8 items-center justify-center rounded-[10px] bg-gradient-to-br from-cyan-400 to-blue-600 text-white shadow-lg shadow-cyan-500/20 transition-transform group-hover:rotate-6">
+              <span className="ui-pulse-ring flex size-8 items-center justify-center rounded-[10px] bg-gradient-to-br from-cyan-400 via-violet-500 to-pink-500 text-white shadow-lg shadow-violet-500/30 transition-transform group-hover:rotate-6">
                 <Sparkles className="size-4" />
               </span>
-              <span className="bg-gradient-to-r from-cyan-500 to-sky-600 bg-clip-text text-transparent dark:from-cyan-400 dark:to-sky-500">HELION</span>
+              <span className="bg-gradient-to-r from-cyan-500 via-violet-500 to-pink-500 bg-clip-text text-transparent">HELION</span>
             </Link>
             <div className="hidden h-7 w-px bg-border sm:block" />
             <div className="min-w-0 flex-1 sm:flex-none">

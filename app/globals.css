@@ -29,6 +29,33 @@
 .ui-float { animation: float 6s ease-in-out infinite; }
 .ui-pulse-ring { animation: pulse-ring 2.4s ease-out infinite; }
 
+/* HELION color field: a richer canvas than flat white, while keeping text
+   contrast and glass surfaces readable in both themes. */
+.helion-canvas {
+  background:
+    radial-gradient(circle at 8% 8%, rgb(34 211 238 / 0.18), transparent 28rem),
+    radial-gradient(circle at 92% 18%, rgb(99 102 241 / 0.16), transparent 30rem),
+    radial-gradient(circle at 55% 100%, rgb(244 114 182 / 0.12), transparent 34rem),
+    #f7f9ff;
+}
+
+.dark .helion-canvas {
+  background:
+    radial-gradient(circle at 8% 8%, rgb(8 145 178 / 0.24), transparent 28rem),
+    radial-gradient(circle at 92% 18%, rgb(79 70 229 / 0.2), transparent 30rem),
+    radial-gradient(circle at 55% 100%, rgb(190 24 93 / 0.14), transparent 34rem),
+    #070a16;
+}
+
+.color-orb {
+  pointer-events: none;
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(1px);
+  opacity: 0.65;
+  animation: float 8s ease-in-out infinite;
+}
+
 /* Shared HELION glass language for cards, panels, and floating controls. */
 .glass-panel {
   border: 1px solid rgb(255 255 255 / 0.5);

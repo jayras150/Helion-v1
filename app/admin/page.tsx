@@ -107,7 +107,9 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="ui-reveal space-y-6">
+    <div className="ui-reveal relative space-y-6 overflow-hidden">
+      <div className="color-orb -right-8 -top-10 size-40 bg-cyan-300/20" />
+      <div className="color-orb bottom-0 -left-10 size-48 bg-fuchsia-300/15 [animation-delay:-2s]" />
       {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => {

@@ -538,7 +538,7 @@ export function HomeClient() {
 
   if (showChatInterface) {
     return (
-      <div className="flex h-dvh flex-col bg-gray-50 dark:bg-transparent">
+      <div className="helion-canvas relative flex h-dvh flex-col overflow-hidden dark:bg-transparent">
         {/* Handle search params with Suspense boundary */}
         <Suspense fallback={null}>
           <SearchParamsHandler onReset={handleReset} />
@@ -597,7 +597,7 @@ export function HomeClient() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-gray-50 dark:bg-transparent">
+    <div className="helion-canvas relative flex min-h-dvh flex-col overflow-hidden dark:bg-transparent">
       {/* Handle search params with Suspense boundary */}
       <Suspense fallback={null}>
         <SearchParamsHandler onReset={handleReset} />
@@ -606,12 +606,14 @@ export function HomeClient() {
       <AppHeader />
 
       {/* Main Content */}
-      <div className="flex flex-1 items-center justify-center px-4 sm:px-6 lg:px-8">
+      <div className="relative flex flex-1 items-center justify-center overflow-hidden px-4 sm:px-6 lg:px-8">
+        <div className="color-orb -left-16 top-20 size-40 bg-cyan-300/35" />
+        <div className="color-orb right-0 bottom-16 size-56 bg-fuchsia-300/25 [animation-delay:-3s]" />
         <div className="w-full max-w-4xl">
           <div className="ui-reveal relative mb-12 text-center">
             <div className="ui-float pointer-events-none absolute -top-20 left-1/2 size-44 -translate-x-1/2 rounded-full bg-cyan-400/20 blur-3xl" />
             <p className="relative mb-3 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-600 dark:text-cyan-300">AI product studio</p>
-            <h2 className="relative mb-4 font-semibold text-4xl tracking-tight text-gray-900 sm:text-6xl dark:text-white">
+            <h2 className="relative mb-4 font-semibold text-4xl tracking-tight text-slate-900 sm:text-6xl dark:text-white">
               Turn a thought into <span className="bg-gradient-to-r from-cyan-400 via-sky-500 to-blue-600 bg-clip-text text-transparent">something real.</span>
             </h2>
             <p className="relative mx-auto max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">Describe the interface, workflow, or product you imagine. HELION will shape the system, generate the code, and make it ready to preview.</p>
