@@ -338,11 +338,13 @@ export function HomeClient() {
           setCurrentChatId(bgChatId);
           window.history.pushState(null, "", `/chats/${bgChatId}`);
         }
-        fetch("/api/chat/run", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chatId: bgChatId }),
-        }).catch(() => {});
+        if (response.headers.get("X-QStash") !== "1") {
+          fetch("/api/chat/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chatId: bgChatId }),
+          }).catch(() => {});
+        }
         const knownContents = chatHistory
           .map((m) => m.content)
           .filter(Boolean);

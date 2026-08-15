@@ -3,7 +3,18 @@ import { NextResponse } from "next/server";
 import { getServerUser } from "@/lib/auth";
 import { getChatById } from "@/lib/db/queries";
 import { generateAndPersistReply } from "@/lib/generate";
-import { claimJob, finishJob } from "@/lib/upstash";
+import { claimJob, finishJob, getJobStatus, isUpstashConfigured } from "@/lib/upstash";
+
+/** Returns the durable background job state so a refreshed browser can recover. */
+export async function GET(request: NextRequest) {
+  const user = await getServerUser();
+  if (!user?.id) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  const chatId = request.nextUrl.searchParams.get("chatId");
+  if (!chatId) return NextResponse.json({ error: "chatId is required" }, { status: 400 });
+  const chat = await getChatById(chatId);
+  if (!chat || chat.userId !== user.id) return NextResponse.json({ error: "Chat not found" }, { status: 404 });
+  return NextResponse.json({ configured: isUpstashConfigured() || Boolean(process.env.QSTASH_TOKEN), status: (isUpstashConfigured() || process.env.QSTASH_TOKEN) ? await getJobStatus(chatId) : null });
+}
 
 /**
  * POST /api/chat/run

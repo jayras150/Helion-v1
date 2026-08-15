@@ -1,5 +1,6 @@
 import "server-only";
 import { Redis } from "@upstash/redis";
+import { Client as QStashClient } from "@upstash/qstash";
 
 /**
  * Upstash Redis job tracking for background chat generation.
@@ -21,6 +22,31 @@ export function isUpstashConfigured(): boolean {
     process.env.UPSTASH_REDIS_REST_URL &&
       process.env.UPSTASH_REDIS_REST_TOKEN,
   );
+}
+
+export function isQStashConfigured(): boolean {
+  return Boolean(process.env.QSTASH_TOKEN && process.env.QSTASH_URL);
+}
+
+function qstash(): QStashClient {
+  return new QStashClient({
+    token: process.env.QSTASH_TOKEN!,
+    baseUrl: process.env.QSTASH_URL!,
+  });
+}
+
+export async function publishGenerationJob(chatId: string): Promise<void> {
+  const baseUrl = process.env.APP_URL || process.env.NEXTAUTH_URL || process.env.VERCEL_URL;
+  if (!baseUrl) throw new Error("APP_URL or NEXTAUTH_URL is required for QStash");
+  const url = baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`;
+  await qstash().publishJSON({
+    url: `${url.replace(/\/$/, "")}/api/chat/qstash`,
+    body: { chatId },
+    headers: { "Content-Type": "application/json" },
+    deduplicationId: `helion-chat-${chatId}`,
+    retries: 3,
+    timeout: "10m",
+  });
 }
 
 function redis(): Redis {

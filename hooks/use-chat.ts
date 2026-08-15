@@ -1,5 +1,5 @@
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR, { mutate } from "swr";
 import { useStreaming } from "@/contexts/streaming-context";
 import { extractProjectFiles } from "@/lib/extract-files";
@@ -79,6 +79,7 @@ export function useChat(chatId: string) {
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const recoveryKeyRef = useRef<string | null>(null);
 
   const getStreamingBodyOrThrow = useCallback(async (response: Response) => {
     if (!response.ok) {
@@ -161,6 +162,57 @@ export function useChat(chatId: string) {
     }
   }, [chatId, handoff, clearHandoff]);
 
+  // Background jobs live in Redis/DB, not in React memory. Recover the
+  // loading state and resume polling when the user refreshes the browser.
+  useEffect(() => {
+    if (isLoadingChat || !currentChat?.messages?.length || handoff.stream) return;
+    const messages = currentChat.messages;
+    const last = messages[messages.length - 1];
+    if (last.role !== "user") return;
+    const key = `${chatId}:${last.id}`;
+    if (recoveryKeyRef.current === key) return;
+    recoveryKeyRef.current = key;
+
+    let cancelled = false;
+    const recover = async () => {
+      try {
+        const statusResponse = await fetch(`/api/chat/run?chatId=${encodeURIComponent(chatId)}`);
+        if (!statusResponse.ok) return;
+        const job = (await statusResponse.json()) as { configured?: boolean; status?: string | null };
+        if (!job.configured || (job.status !== "pending" && job.status !== "processing")) return;
+
+        setIsLoading(true);
+        setIsStreaming(true);
+        if (job.status === "pending") {
+          void fetch("/api/chat/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ chatId }),
+          });
+        }
+        const reply = await pollForNewAssistantMessage(
+          chatId,
+          messages.map((message) => message.content).filter(Boolean),
+        );
+        if (cancelled) return;
+        setIsStreaming(false);
+        setIsLoading(false);
+        if (reply) {
+          setChatHistory((previous) => [...previous, { type: "assistant", content: reply }]);
+          await fetchAndCacheChatDetails(chatId);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to recover background generation:", error);
+          setIsStreaming(false);
+          setIsLoading(false);
+        }
+      }
+    };
+    void recover();
+    return () => { cancelled = true; };
+  }, [chatId, currentChat, handoff.stream, isLoadingChat]);
+
   const handleSendMessage = useCallback(
     async (
       e: React.FormEvent<HTMLFormElement>,
@@ -202,11 +254,13 @@ export function useChat(chatId: string) {
           };
           const bgChatId = data.id || chatId;
           setIsStreaming(true);
-          fetch("/api/chat/run", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chatId: bgChatId }),
-          }).catch(() => {});
+          if (response.headers.get("X-QStash") !== "1") {
+            fetch("/api/chat/run", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ chatId: bgChatId }),
+            }).catch(() => {});
+          }
           const knownContents = chatHistory
             .map((m) => m.content)
             .filter(Boolean);

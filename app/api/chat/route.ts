@@ -18,7 +18,7 @@ import {
 } from "@/lib/generate";
 import { detectScopeFromPrompt, parseScopeTag } from "@/lib/scope";
 import { buildChatSystemPrompt } from "@/lib/skills";
-import { createJob, isUpstashConfigured } from "@/lib/upstash";
+import { createJob, isQStashConfigured, isUpstashConfigured, publishGenerationJob } from "@/lib/upstash";
 
 async function checkRateLimit(
   user: AppUser | null,
@@ -112,15 +112,17 @@ export async function POST(request: NextRequest) {
     // client fires /api/chat/run, which generates server-side (and keeps going
     // even if the browser disconnects / goes idle), then polls for the reply.
     // Falls back to streaming when Upstash isn't configured / Redis fails.
-    if (background && isUpstashConfigured()) {
+    if (background && (isQStashConfigured() || isUpstashConfigured())) {
       try {
         await createJob(chat.id);
+        if (isQStashConfigured()) await publishGenerationJob(chat.id);
         return new Response(JSON.stringify({ id: chat.id, background: true }), {
           status: 200,
           headers: {
             "Content-Type": "application/json",
             "X-Chat-Id": chat.id,
             "X-Background": "1",
+            "X-QStash": isQStashConfigured() ? "1" : "0",
           },
         });
       } catch (error) {
