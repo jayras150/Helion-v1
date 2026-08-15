@@ -40,7 +40,7 @@ export async function pollForNewAssistantMessage(
   chatId: string,
   knownContents: string[],
   timeoutMs = 11 * 60_000,
-  intervalMs = 3000,
+  intervalMs = 1500,
 ): Promise<string | null> {
   return pollForNewMessage(chatId, knownContents, {
     timeoutMs,
