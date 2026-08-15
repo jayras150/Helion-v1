@@ -4,6 +4,7 @@ import { existsSync, readFileSync, readdirSync } from "fs";
 import path from "path";
 import { upsertSetting } from "@/lib/db/queries";
 import { getSystemPrompt } from "@/lib/system-prompt";
+import { getStarterGuidance, detectStarterKind } from "@/lib/starters";
 
 /**
  * Skill integration for the HELION AI.
@@ -214,8 +215,12 @@ export async function buildChatSystemPrompt(
   options: { hasExistingProject?: boolean } = {},
 ): Promise<string> {
   const base = await getSystemPrompt();
+  const starter = options.hasExistingProject
+    ? ""
+    : `## STARTER BLUEPRINT (${detectStarterKind(userMessage).toUpperCase()})\n${getStarterGuidance(detectStarterKind(userMessage))}`;
   return [
     base,
+    starter,
     options.hasExistingProject ? EDIT_CONTRACT : OUTPUT_CONTRACT,
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 }
