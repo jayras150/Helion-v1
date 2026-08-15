@@ -3,7 +3,7 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import useSWR from "swr";
-import { AppHeader } from "@/components/shared/app-header";
+import { AppShell } from "@/components/shared/app-shell";
 
 interface V0Chat {
   id: string;
@@ -32,9 +32,7 @@ export function ChatsClient() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-transparent">
-      <AppHeader />
-
+    <AppShell>
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {isLoading && (
           <div className="flex items-center justify-center py-12">
@@ -106,7 +104,7 @@ export function ChatsClient() {
                     href={`/chats/${chat.id}`}
                     className="group block"
                   >
-                    <div className="rounded-lg border border-border p-6 transition-shadow hover:shadow-md dark:border-input">
+                    <div className="rounded-2xl border border-white/60 bg-white/50 p-6 shadow-[0_12px_35px_-22px_rgba(31,38,135,0.35)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:shadow-lg hover:border-cyan-400/40 dark:border-white/[0.07] dark:bg-white/[0.06]">
                       <div className="flex items-start justify-between">
                         <div className="min-w-0 flex-1">
                           <h3 className="truncate font-medium text-gray-900 text-lg transition-colors group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">
@@ -129,6 +127,6 @@ export function ChatsClient() {
           </>
         )}
       </main>
-    </div>
+    </AppShell>
   );
 }

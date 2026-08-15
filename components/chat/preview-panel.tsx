@@ -229,7 +229,7 @@ export function PreviewPanel({
   }, [saveScreenshot]);
 
   return (
-    <div className="fixed inset-0 z-50 flex h-full w-full flex-col bg-gray-50 dark:bg-black">
+    <div className="helion-canvas fixed inset-0 z-50 flex h-full w-full flex-col dark:bg-transparent">
       {/* Toolbar */}
       <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-3">
         <span className="font-medium text-sm">Preview</span>

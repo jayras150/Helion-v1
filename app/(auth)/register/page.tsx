@@ -11,7 +11,7 @@ export default async function RegisterPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen w-full items-center justify-center bg-background p-4">
+    <div className="helion-canvas relative flex min-h-screen w-full items-center justify-center p-4 dark:bg-transparent">
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02]"
         style={{
@@ -22,8 +22,8 @@ export default async function RegisterPage() {
       />
 
       <div className="relative w-full max-w-sm">
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-lg">
-          <div className="border-border border-b bg-card px-6 py-8 text-center">
+        <div className="glass-strong overflow-hidden rounded-2xl">
+          <div className="border-white/70 border-b bg-white/40 px-6 py-8 text-center dark:border-white/[0.06] dark:bg-white/[0.04]">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-sky-600">
               <Sparkles className="h-6 w-6 text-white" />
             </div>
@@ -39,7 +39,7 @@ export default async function RegisterPage() {
             </p>
           </div>
 
-          <div className="bg-muted/30 px-6 py-8">
+          <div className="bg-white/30 px-6 py-8 dark:bg-white/[0.03]">
             <AuthForm type="signup" oauthAvailable={oauthAvailable()} />
           </div>
         </div>

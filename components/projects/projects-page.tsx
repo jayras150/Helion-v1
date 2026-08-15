@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AppHeader } from "@/components/shared/app-header";
+import { AppShell } from "@/components/shared/app-shell";
 import type { Project } from "@/lib/projects";
 import { ProjectGrid } from "./project-grid";
 import { ProjectsHeader } from "./projects-header";
@@ -63,8 +63,7 @@ export function ProjectsPage({ projects }: ProjectsPageProps) {
   };
 
   return (
-    <div className="helion-canvas min-h-screen dark:bg-transparent">
-      <AppHeader />
+    <AppShell>
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <ProjectsHeader
           projectCount={filteredProjects.length}
@@ -79,6 +78,6 @@ export function ProjectsPage({ projects }: ProjectsPageProps) {
         />
         <ProjectGrid projects={filteredProjects} selectedIds={selectedIds} onToggle={toggleProject} />
       </main>
-    </div>
+    </AppShell>
   );
 }

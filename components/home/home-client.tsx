@@ -26,7 +26,7 @@ import { ChatMessages } from "@/components/chat/chat-messages";
 import { BackendPanel } from "@/components/chat/backend-panel";
 import { FilesSidebar } from "@/components/chat/files-sidebar";
 import { PreviewPanel } from "@/components/chat/preview-panel";
-import { AppHeader } from "@/components/shared/app-header";
+import { AppShell } from "@/components/shared/app-shell";
 import { extractProjectFiles } from "@/lib/extract-files";
 import { mergeProjectContent } from "@/lib/merge-files";
 import {
@@ -543,21 +543,21 @@ export function HomeClient() {
 
   if (showChatInterface) {
     return (
-      <div className="helion-canvas relative flex h-dvh flex-col overflow-hidden dark:bg-transparent">
+      <AppShell
+        headerProps={{
+          onPreview: () => setIsPreviewOpen(true),
+          previewActive: isPreviewOpen,
+          previewDisabled: !previewSource,
+          onOpenFiles: () => setIsFilesOpen(true),
+          filesDisabled: !previewSource,
+        }}
+      >
         {/* Handle search params with Suspense boundary */}
         <Suspense fallback={null}>
           <SearchParamsHandler onReset={handleReset} />
         </Suspense>
 
-        <AppHeader
-          onPreview={() => setIsPreviewOpen(true)}
-          previewActive={isPreviewOpen}
-          previewDisabled={!previewSource}
-          onOpenFiles={() => setIsFilesOpen(true)}
-          filesDisabled={!previewSource}
-        />
-
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex h-full min-h-0 flex-col">
           <ChatMessages
             chatHistory={chatHistory}
             isLoading={isLoading}
@@ -597,21 +597,19 @@ export function HomeClient() {
           sourceCode={previewSource}
           onClose={() => setIsFilesOpen(false)}
         />
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="helion-canvas relative flex min-h-dvh flex-col overflow-hidden dark:bg-transparent">
+    <AppShell>
       {/* Handle search params with Suspense boundary */}
       <Suspense fallback={null}>
         <SearchParamsHandler onReset={handleReset} />
       </Suspense>
 
-      <AppHeader />
-
       {/* Main Content */}
-      <div className="relative flex flex-1 items-center justify-center overflow-hidden px-4 sm:px-6 lg:px-8">
+      <div className="relative flex min-h-full flex-1 flex-col items-center justify-center overflow-hidden px-4 py-6 sm:px-6 lg:px-8">
         <div className="color-orb -left-16 top-20 size-40 bg-cyan-300/35" />
         <div className="color-orb right-0 bottom-16 size-56 bg-fuchsia-300/25 [animation-delay:-3s]" />
         <div className="w-full max-w-4xl">
@@ -793,6 +791,6 @@ export function HomeClient() {
           </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }

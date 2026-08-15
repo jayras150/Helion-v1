@@ -11,7 +11,7 @@ import { ChatMessages } from "@/components/chat/chat-messages";
 import { BackendPanel } from "@/components/chat/backend-panel";
 import { FilesSidebar } from "@/components/chat/files-sidebar";
 import { PreviewPanel } from "@/components/chat/preview-panel";
-import { AppHeader } from "@/components/shared/app-header";
+import { AppShell } from "@/components/shared/app-shell";
 import { useChat } from "@/hooks/use-chat";
 import { useEventListener } from "@/hooks/use-event-listner";
 import { extractProjectFiles } from "@/lib/extract-files";
@@ -166,16 +166,16 @@ export function ChatDetailClient() {
   });
 
   return (
-    <div className="flex h-dvh flex-col bg-gray-50 dark:bg-transparent">
-      <AppHeader
-        onPreview={() => setIsPreviewOpen(true)}
-        previewActive={isPreviewOpen}
-        previewDisabled={!previewSource}
-        onOpenFiles={() => setIsFilesOpen(true)}
-        filesDisabled={!previewSource}
-      />
-
-      <div className="flex min-h-0 flex-1 flex-col">
+    <AppShell
+      headerProps={{
+        onPreview: () => setIsPreviewOpen(true),
+        previewActive: isPreviewOpen,
+        previewDisabled: !previewSource,
+        onOpenFiles: () => setIsFilesOpen(true),
+        filesDisabled: !previewSource,
+      }}
+    >
+      <div className="flex h-full min-h-0 flex-col">
         <ChatMessages
           chatHistory={chatHistory}
           isLoading={isLoading}
@@ -217,6 +217,6 @@ export function ChatDetailClient() {
         sourceCode={previewSource}
         onClose={() => setIsFilesOpen(false)}
       />
-    </div>
+    </AppShell>
   );
 }

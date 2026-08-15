@@ -55,7 +55,7 @@ export function ProjectCard({ project, selected = false, onSelect }: ProjectCard
   };
 
   return (
-    <div className={`group relative overflow-hidden rounded-2xl border bg-white/65 shadow-[0_12px_35px_-24px_rgba(79,70,229,0.7)] backdrop-blur-xl transition-all hover:-translate-y-1 hover:shadow-xl dark:bg-slate-950/55 ${selected ? "border-cyan-500 ring-2 ring-cyan-500/20" : "border-white/60 dark:border-white/10"}`}>
+    <div className={`group relative overflow-hidden rounded-2xl border bg-white/65 shadow-[0_12px_35px_-24px_rgba(79,70,229,0.7)] backdrop-blur-xl transition-all hover:-translate-y-1 hover:shadow-xl dark:bg-slate-950/55 ${selected ? "border-cyan-500 ring-2 ring-cyan-500/20" : "border-white/60 dark:border-white/[0.06]"}`}>
       {onSelect ? (
         <label className="absolute top-3 left-3 z-10 flex cursor-pointer items-center gap-2 rounded-lg border border-white/70 bg-white/85 px-2 py-1.5 text-xs font-medium text-gray-700 opacity-0 shadow-sm backdrop-blur transition-opacity group-hover:opacity-100 has-[:focus-visible]:opacity-100 dark:border-zinc-700/80 dark:bg-zinc-900/85 dark:text-gray-200">
           <input

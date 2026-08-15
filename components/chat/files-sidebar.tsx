@@ -163,7 +163,7 @@ export function FilesSidebar({ open, sourceCode, onClose }: FilesSidebarProps) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <aside className="absolute top-0 right-0 flex h-full w-80 max-w-[85vw] flex-col border-l border-border bg-background shadow-xl">
+      <aside className="absolute top-0 right-0 flex h-full w-80 max-w-[85vw] flex-col border-l border-white/60 bg-white/70 shadow-2xl backdrop-blur-2xl dark:border-white/[0.07] dark:bg-[#0d1220]/85">
         {/* Header */}
         <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
           <div className="flex items-center gap-2 font-medium text-sm">

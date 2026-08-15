@@ -30,8 +30,8 @@ export const ThemeToggle = forwardRef<
       aria-label="Theme"
       {...props}
     >
-      <Sun className="h-[1.2rem] w-[1.2rem] text-neutral-800 dark:hidden dark:text-neutral-200" />
-      <Moon className="hidden h-[1.2rem] w-[1.2rem] text-neutral-800 dark:block dark:text-neutral-200" />
+      <Sun className="h-[1.2rem] w-[1.2rem] text-yellow-500 dark:hidden dark:text-yellow-400" />
+      <Moon className="hidden h-[1.2rem] w-[1.2rem] text-yellow-500 dark:block dark:text-yellow-400" />
     </Button>
   );
 });

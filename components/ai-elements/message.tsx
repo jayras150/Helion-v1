@@ -75,8 +75,8 @@ export const MessageContent = ({
       className={cn(
         "rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm",
         isUser
-          ? "rounded-br-md bg-primary text-primary-foreground"
-          : "rounded-bl-md border border-border bg-card text-foreground",
+          ? "rounded-br-md bg-gradient-to-br from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/25"
+          : "rounded-bl-md border border-white/60 bg-white/55 text-foreground shadow-sm backdrop-blur-xl dark:border-white/[0.07] dark:bg-white/[0.07]",
         className,
       )}
       {...props}
