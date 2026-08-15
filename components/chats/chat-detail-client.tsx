@@ -165,13 +165,6 @@ export function ChatDetailClient() {
     }
   });
 
-  // Auto-focus the textarea on page load
-  useEffect(() => {
-    if (textareaRef.current && !isLoadingChat) {
-      textareaRef.current.focus();
-    }
-  }, [isLoadingChat]);
-
   return (
     <div className="flex h-dvh flex-col bg-gray-50 dark:bg-transparent">
       <AppHeader
@@ -187,7 +180,6 @@ export function ChatDetailClient() {
           chatHistory={chatHistory}
           isLoading={isLoading}
           onStreamingComplete={handleStreamingDone}
-          onStreamingStarted={() => setIsLoading(false)}
           onEditMessage={(index) => void editUserMessage(index)}
           onDeleteMessage={(index) => void deleteMessage(index)}
         />
