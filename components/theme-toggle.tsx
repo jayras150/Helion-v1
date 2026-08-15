@@ -24,14 +24,13 @@ export const ThemeToggle = forwardRef<
       ref={ref}
       variant="ghost"
       type="button"
-      size="icon"
-      className="cursor-pointer px-2"
+      className="h-6 w-6 cursor-pointer rounded-md"
       onClick={handleClick}
       aria-label="Theme"
       {...props}
     >
-      <Sun className="h-[1.2rem] w-[1.2rem] text-yellow-500 dark:hidden dark:text-yellow-400" />
-      <Moon className="hidden h-[1.2rem] w-[1.2rem] text-yellow-500 dark:block dark:text-yellow-400" />
+      <Sun className="size-3.5 text-yellow-500 dark:hidden dark:text-yellow-400" />
+      <Moon className="hidden size-3.5 text-yellow-500 dark:block dark:text-yellow-400" />
     </Button>
   );
 });
