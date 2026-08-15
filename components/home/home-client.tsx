@@ -785,8 +785,7 @@ export function HomeClient() {
           {/* Footer */}
           <div className="mt-16 text-center text-muted-foreground text-sm">
             <p>
-              Powered by your own{" "}
-              <span className="text-foreground">AI provider</span>
+              Powered by <span className="font-semibold text-foreground">HELION</span>
             </p>
           </div>
         </div>
