@@ -170,7 +170,7 @@ export const PromptInput = ({
   return (
     <form
       className={cn(
-        "w-full divide-y overflow-hidden rounded-2xl border border-white/70 bg-white/55 shadow-[0_18px_60px_-28px_rgba(8,145,178,0.65),inset_0_1px_0_rgba(255,255,255,0.6)] backdrop-blur-xl transition-all duration-300 focus-within:border-cyan-400/70 focus-within:bg-white/65 focus-within:shadow-[0_20px_70px_-26px_rgba(8,145,178,0.85)] dark:border-white/[0.07] dark:bg-white/[0.06] dark:focus-within:bg-white/[0.09]",
+        "w-full divide-y overflow-hidden rounded-2xl border border-white/90 bg-white/92 shadow-[0_18px_60px_-28px_rgba(8,145,178,0.65),inset_0_1px_0_rgba(255,255,255,0.6)] backdrop-blur-xl transition-all duration-300 focus-within:border-cyan-400/70 focus-within:bg-white/95 focus-within:shadow-[0_20px_70px_-26px_rgba(8,145,178,0.85)] dark:border-white/[0.12] dark:bg-[#0c1a3a]/85 dark:focus-within:bg-[#12244d]/88",
         isDragOver && "border-primary bg-primary/5",
         className,
       )}

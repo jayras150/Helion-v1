@@ -121,7 +121,7 @@ export function ChatInput({
   );
 
   return (
-    <div className="border-t border-white/50 bg-gradient-to-r from-cyan-50/55 via-white/45 to-fuchsia-50/55 p-4 pt-3 backdrop-blur-xl dark:border-white/[0.06] dark:from-cyan-950/25 dark:via-black/20 dark:to-fuchsia-950/25">
+    <div className="border-t border-white/80 bg-gradient-to-r from-cyan-50/90 via-white/85 to-fuchsia-50/90 p-4 pt-3 backdrop-blur-xl dark:border-white/[0.1] dark:from-[#0a1a3a]/85 dark:via-[#0a1226]/85 dark:to-[#0a1636]/85">
       <div className="flex gap-2">
         <PromptInput
           onSubmit={handleSubmit}

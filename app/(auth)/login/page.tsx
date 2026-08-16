@@ -36,7 +36,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </div>
         )}
         <div className="glass-strong overflow-hidden rounded-2xl">
-          <div className="border-white/70 border-b bg-white/40 px-6 py-8 text-center dark:border-white/[0.06] dark:bg-white/[0.04]">
+          <div className="border-white/90 border-b bg-white/85 px-6 py-8 text-center dark:border-white/[0.1] dark:bg-[#0c1a3a]/85">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-sky-600">
               <Sparkles className="h-6 w-6 text-white" />
             </div>
@@ -51,7 +51,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </p>
           </div>
 
-          <div className="bg-white/30 px-6 py-8 dark:bg-white/[0.03]">
+          <div className="bg-white/75 px-6 py-8 dark:bg-[#0c1a3a]/75">
             <AuthForm type="signin" oauthAvailable={oauthAvailable()} />
           </div>
         </div>

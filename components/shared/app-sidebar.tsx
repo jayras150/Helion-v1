@@ -196,8 +196,8 @@ export function AppSidebar({
       {/* Desktop rail */}
       <aside
         className={cn(
-          "hidden min-w-0 shrink-0 flex-col overflow-hidden border-r border-slate-200/60 bg-white/60 backdrop-blur-2xl md:flex",
-          "transition-[width] duration-200 dark:border-white/[0.06] dark:bg-[#0a0e17]/70",
+          "hidden min-w-0 shrink-0 flex-col overflow-hidden border-r border-slate-200/80 bg-white md:flex",
+          "transition-[width] duration-200 dark:border-white/[0.1] dark:bg-[#0a1326]",
           !open
             ? "w-0 border-r-0"
             : collapsed
@@ -238,7 +238,7 @@ export function AppSidebar({
             className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
             onClick={onCloseMobile}
           />
-          <div className="helion-canvas absolute inset-y-0 left-0 flex w-72 flex-col shadow-2xl dark:bg-transparent">
+          <div className="absolute inset-y-0 left-0 flex w-72 flex-col border-r border-slate-200/80 bg-white shadow-2xl dark:border-white/[0.1] dark:bg-[#0a1326]">
             <div className="flex items-center justify-between border-b border-slate-200/60 px-4 py-3 dark:border-white/[0.06]">
               <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">
                 Menu

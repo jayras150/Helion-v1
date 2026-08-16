@@ -104,7 +104,7 @@ export function ChatsClient() {
                     href={`/chats/${chat.id}`}
                     className="group block"
                   >
-                    <div className="rounded-2xl border border-white/60 bg-white/50 p-6 shadow-[0_12px_35px_-22px_rgba(31,38,135,0.35)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:shadow-lg hover:border-cyan-400/40 dark:border-white/[0.07] dark:bg-white/[0.06]">
+                    <div className="rounded-2xl border border-white/80 bg-white/90 p-6 shadow-[0_12px_35px_-22px_rgba(31,38,135,0.35)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:shadow-lg hover:border-cyan-400/40 dark:border-white/[0.12] dark:bg-[#0c1a3a]/85">
                       <div className="flex items-start justify-between">
                         <div className="min-w-0 flex-1">
                           <h3 className="truncate font-medium text-gray-900 text-lg transition-colors group-hover:text-blue-600 dark:text-white dark:group-hover:text-blue-400">

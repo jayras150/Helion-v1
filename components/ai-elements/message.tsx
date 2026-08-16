@@ -76,7 +76,7 @@ export const MessageContent = ({
         "rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm",
         isUser
           ? "rounded-br-md bg-gradient-to-br from-cyan-500 to-indigo-600 text-white shadow-lg shadow-cyan-500/25"
-          : "rounded-bl-md border border-white/60 bg-white/55 text-foreground shadow-sm backdrop-blur-xl dark:border-white/[0.07] dark:bg-white/[0.07]",
+          : "rounded-bl-md border border-white/85 bg-white/92 text-foreground shadow-sm backdrop-blur-xl dark:border-white/[0.12] dark:bg-[#0c1a3a]/85",
         className,
       )}
       {...props}

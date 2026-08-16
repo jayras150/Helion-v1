@@ -137,7 +137,7 @@ export function ChatMessages({
         <ConversationContent className="mx-auto w-full max-w-3xl">
           {isLoading ? (
             <div className="py-8">
-              <div className="mx-auto flex w-full max-w-2xl items-center gap-4 rounded-2xl border border-white/50 bg-white/45 p-6 shadow-[0_12px_45px_-20px_rgba(34,211,238,0.55)] backdrop-blur-xl dark:border-white/[0.06] dark:bg-white/[0.06]">
+              <div className="mx-auto flex w-full max-w-2xl items-center gap-4 rounded-2xl border border-white/80 bg-white/90 p-6 shadow-[0_12px_45px_-20px_rgba(34,211,238,0.55)] backdrop-blur-xl dark:border-white/[0.1] dark:bg-[#0c1a3a]/85">
                 <GenerationSpinner />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 text-sm font-semibold">
@@ -242,7 +242,7 @@ export function ChatMessages({
         ))}
         {isLoading && !hasStreamingMessage && chatHistory.length === 1 && chatHistory[0].type === "user" ? (
           <div className="py-8">
-            <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-white/50 bg-white/45 p-6 shadow-[0_12px_45px_-20px_rgba(34,211,238,0.55)] backdrop-blur-xl dark:border-white/[0.06] dark:bg-white/[0.06]">
+            <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-2xl border border-white/80 bg-white/90 p-6 shadow-[0_12px_45px_-20px_rgba(34,211,238,0.55)] backdrop-blur-xl dark:border-white/[0.1] dark:bg-[#0c1a3a]/85">
               <div className="flex items-center gap-4">
                 <GenerationSpinner />
                 <div className="min-w-0 flex-1">

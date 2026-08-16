@@ -144,9 +144,9 @@ export function AppHeader({
     <div
       className={cn(
         "helion-header sticky top-0 z-40 relative border-b border-slate-200/60",
-        "bg-white/70 backdrop-blur-2xl",
+        "bg-white/90 backdrop-blur-2xl",
         "shadow-[0_10px_40px_-24px_rgba(2,6,23,0.28)]",
-        "dark:border-white/[0.06] dark:bg-[#0a0e17]/80",
+        "dark:border-white/[0.1] dark:bg-[#0a1326]/93",
         className,
       )}
     >
@@ -197,7 +197,7 @@ export function AppHeader({
           {/* Actions: theme toggle, preview/files, user profile — each its own group */}
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {/* Dark / light mode toggle */}
-            <div className="flex items-center rounded-xl border border-white/50 bg-white/40 p-0.5 shadow-[0_10px_30px_-14px_rgba(79,70,229,0.4)] backdrop-blur-md dark:border-white/[0.06] dark:bg-white/[0.05]">
+            <div className="flex items-center rounded-xl border border-white/80 bg-white/90 p-0.5 shadow-[0_10px_30px_-14px_rgba(79,70,229,0.4)] backdrop-blur-md dark:border-white/[0.1] dark:bg-[#0c1a3a]/90">
               <ThemeToggle />
             </div>
 
@@ -234,7 +234,7 @@ export function AppHeader({
             ) : null}
 
             {/* User profile */}
-            <div className="flex shrink-0 items-center rounded-2xl border border-white/50 bg-white/40 p-1 shadow-[0_10px_30px_-14px_rgba(79,70,229,0.4)] backdrop-blur-md dark:border-white/[0.06] dark:bg-white/[0.05]">
+            <div className="flex shrink-0 items-center rounded-2xl border border-white/80 bg-white/90 p-1 shadow-[0_10px_30px_-14px_rgba(79,70,229,0.4)] backdrop-blur-md dark:border-white/[0.1] dark:bg-[#0c1a3a]/90">
               <UserNav session={session} />
             </div>
           </div>
